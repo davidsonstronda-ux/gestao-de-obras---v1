@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão de Obras — mockup (Painel)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Paleta do Davidson (v2 · 20/10) */
+    --destaque: #00A3B4;          /* turquesa: faixas, bordas, barra, marcador */
+    --destaque-forte: #007A87;    /* turquesa escurecido: fundo de botão e texto (contraste 5:1 com branco) */
+    --destaque-hover: #00646F;
+    --escuro: #26333A;
+    --claro: #F2F4F5;
+    --ambar: #F0A93B;
+    --vermelho: #E2574C;          /* faixas e números grandes */
+    --vermelho-forte: #C4372D;    /* etiquetas e botões com texto branco */
+    /* Derivadas */
+    --escuro-2: #4A5A63;          /* cabeçalho, segunda camada; texto secundário */
+    --verde: #237A4B;             /* ok — verde frio, separado do turquesa */
+    --ambar-texto: #8A5600;     /* âmbar escurecido para texto sobre claro */
+    --vermelho-claro: #FCE8E6;
+    --fundo: #F2F4F5;             /* fundo da página */
+    --cartao: #FFFFFF;
+    --borda: #D3DBDF;
+    --texto: #1A2429;
+    --texto-2: #4A5A63;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, "Roboto Mono", monospace;
+    --raio: 6px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--fundo); color: var(--texto); font-family: var(--sans); font-size: 17px; line-height: 1.35; -webkit-font-smoothing: antialiased; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+
+  /* ---------- Estrutura ---------- */
+  .lateral { position: fixed; inset: 0 auto 0 0; width: 232px; background: var(--escuro); color: var(--claro); display: flex; flex-direction: column; padding: 18px 12px; z-index: 8; }
+  .marca { display: flex; align-items: center; gap: 10px; padding: 2px 8px 22px; font-weight: 700; font-size: 17px; }
+  .marca i { width: 30px; height: 30px; border-radius: 5px; background: var(--destaque); display: grid; place-items: center; font-style: normal; }
+  .marca i svg { width: 18px; height: 18px; }
+  .item-menu { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 12px; border: 0; border-radius: var(--raio); background: none; color: #D5DEE2; font-family: var(--mono); font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; text-align: left; }
+  .item-menu:hover { background: rgba(242,244,245,.07); }
+  .item-menu.ativo { background: var(--destaque-forte); color: #fff; }
+  .item-menu svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .lateral .rod { margin-top: auto; padding: 0 10px; font-family: var(--mono); font-size: 12px; color: #93A3AB; letter-spacing: .04em; line-height: 1.6; }
+
+  .principal { margin-left: 232px; min-height: 100vh; }
+
+  /* Cabeçalho escuro estilo Painel */
+  .cab { background: var(--escuro); color: var(--claro); padding: 14px 24px 0; position: sticky; top: 0; z-index: 5; }
+  .cab-linha { display: flex; align-items: center; gap: 12px; }
+  .obra-marca { width: 14px; height: 14px; border-radius: 3px; background: var(--destaque); flex-shrink: 0; }
+  .obra-nome { font-size: 18px; font-weight: 700; line-height: 1.2; }
+  .obra-meta { font-family: var(--mono); font-size: 12px; color: #B9C5CB; letter-spacing: .06em; margin-top: 2px; }
+  .trocar { margin-left: auto; white-space: nowrap; flex-shrink: 0; min-height: 44px; padding: 0 14px; border: 1px solid rgba(242,244,245,.35); border-radius: var(--raio); background: var(--escuro-2); color: var(--claro); font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+  .quem { min-height: 44px; display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; color: #B9C5CB; letter-spacing: .05em; }
+  .quem b { width: 34px; height: 34px; border-radius: 50%; background: var(--claro); color: var(--escuro); display: grid; place-items: center; font-size: 13px; }
+  .abas { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  .abas::-webkit-scrollbar { display: none; }
+  .aba { min-height: 44px; padding: 0 12px; border: 0; background: none; color: #AEBBC2; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .aba.ativa { color: #fff; border-bottom-color: var(--destaque); }
+  .voltar { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px 0 0; border: 0; background: none; color: var(--claro); font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .voltar svg { width: 20px; height: 20px; }
+
+  .conteudo { padding: 16px 24px 120px; max-width: 1080px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* ---------- Cartões ---------- */
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); }
+  .rotulo { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-2); }
+
+  /* Indicadores com faixa no topo */
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kpi { padding: 12px 14px 12px; border-top: 4px solid var(--escuro); text-align: left; min-height: 44px; }
+  button.kpi { cursor: pointer; }
+  button.kpi:hover { border-color: #B4C0C6; }
+  .kpi.vermelho { border-top-color: var(--vermelho); }
+  .kpi.ambar { border-top-color: var(--ambar); }
+  .kpi.verde { border-top-color: var(--verde); }
+  .kpi .valor { font-size: 44px; font-weight: 700; line-height: 1; margin: 6px 0 6px; color: var(--escuro); }
+  .kpi.vermelho .valor { color: var(--vermelho); }
+  .kpi.verde .valor { color: var(--verde); }
+  .kpi .nota { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--texto-2); }
+  .kpi.vermelho .nota { color: var(--vermelho-forte); }
+  .kpi.ambar .nota { color: var(--ambar-texto); }
+  .kpi.selecionado { outline: 2px solid var(--escuro); outline-offset: -1px; }
+
+  /* Entrega */
+  .entrega { padding: 14px 16px; }
+  .entrega .linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .entrega .data { font-size: 26px; font-weight: 700; color: var(--escuro); }
+  .entrega .linha .tag { margin-left: auto; }
+  .barra { height: 10px; border-radius: 99px; background: #DDE4E8; margin: 12px 0 8px; overflow: hidden; }
+  .barra i { display: block; height: 100%; background: var(--destaque); border-radius: 99px; }
+  .marcos { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .05em; color: var(--texto-2); text-transform: uppercase; }
+
+  /* Etiquetas */
+  .tag { display: inline-flex; align-items: center; min-height: 28px; padding: 0 9px; border-radius: 4px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  .tag.vermelho { background: var(--vermelho-forte); color: #fff; }
+  .tag.ambar { background: var(--ambar); color: var(--escuro); }
+  .tag.verde { background: var(--verde); color: #fff; }
+  .tag.neutra { background: #E6EBEE; color: var(--escuro); }
+
+  /* Lista compacta */
+  .lista-cab { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--borda); flex-wrap: wrap; }
+  .lista-cab .ordenar { margin-left: auto; display: flex; border: 1px solid var(--borda); border-radius: var(--raio); overflow: hidden; }
+  .ordenar button { min-height: 44px; padding: 0 12px; border: 0; background: var(--cartao); font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--texto-2); }
+  .ordenar button.ativo { background: var(--escuro); color: var(--claro); }
+  .linha-lista { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #E6EBEE; width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; min-height: 64px; }
+  .linha-lista:last-child { border-bottom: 0; }
+  button.linha-lista:hover { background: #F7F9FA; }
+  .linha-lista.critica { background: var(--vermelho-claro); }
+  button.linha-lista.critica:hover { background: #F9DAD6; }
+  .linha-lista .titulo { font-size: 17px; font-weight: 600; color: var(--texto); }
+  .linha-lista .meta { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--texto-2); margin-top: 3px; }
+  .linha-lista.critica .meta { color: #A3322A; }
+  .linha-lista .lado { display: flex; align-items: center; gap: 12px; }
+  .parado { text-align: right; line-height: 1; min-width: 46px; }
+  .parado b { display: block; font-size: 30px; font-weight: 700; color: var(--escuro); }
+  .parado span { white-space: nowrap; font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--texto-2); }
+  .critica .parado b { color: var(--vermelho); }
+  .lista-rod { display: flex; justify-content: space-between; align-items: center; padding: 4px 14px; border-top: 1px solid var(--borda); }
+  .link { min-height: 44px; border: 0; background: none; padding: 0; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--destaque-forte); }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mini { padding: 12px 14px; text-align: left; min-height: 72px; }
+  button.mini:hover { border-color: #B4C0C6; }
+  .mini .val { font-size: 18px; font-weight: 600; margin-top: 4px; }
+  .mini .val.vermelho { color: var(--vermelho-forte); }
+
+  .botao { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 0; border-radius: var(--raio); background: var(--destaque-forte); color: #fff; font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .botao:hover { background: var(--destaque-hover); }
+  .botao.contorno { background: var(--cartao); color: var(--escuro); border: 1.5px solid var(--escuro); }
+  .botao.contorno:hover { background: #EDF2F4; }
+  .botao svg { width: 20px; height: 20px; }
+  .icone-botao { min-height: 44px; min-width: 44px; padding: 0 10px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--cartao); display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .05em; color: var(--escuro); }
+  .icone-botao svg { width: 20px; height: 20px; }
+
+  /* Detalhe */
+  .det-titulo { font-size: 22px; font-weight: 700; line-height: 1.2; margin: 2px 0 2px; }
+  .det-sub { font-family: var(--mono); font-size: 12px; color: #B9C5CB; letter-spacing: .06em; text-transform: uppercase; padding-bottom: 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+  .grade-det { display: grid; grid-template-columns: 1fr 1.35fr; gap: 12px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .pares { margin: 0; padding: 4px 14px 10px; display: grid; grid-template-columns: 1fr auto; }
+  .pares dt, .pares dd { padding: 10px 0; border-bottom: 1px solid #E6EBEE; margin: 0; }
+  .pares dt { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--texto-2); display: flex; align-items: center; }
+  .pares dd { font-size: 18px; font-weight: 700; text-align: right; }
+  .pares .ult { border-bottom: 0; }
+  .dinheiro { margin: 0 14px 14px; padding: 12px; border: 1px dashed #B4C0C6; border-radius: var(--raio); background: #F7F9FA; }
+  .dinheiro .v { font-size: 24px; font-weight: 700; color: var(--escuro); margin-top: 2px; }
+  .dinheiro .so { font-family: var(--mono); font-size: 11px; color: var(--texto-2); letter-spacing: .05em; text-transform: uppercase; margin-top: 2px; }
+  .ok-ico { width: 24px; height: 24px; border-radius: 4px; border: 2px solid #B4C0C6; display: grid; place-items: center; flex-shrink: 0; }
+  .feito .ok-ico { background: var(--verde); border-color: var(--verde); color: #fff; }
+  .feito .ok-ico svg { width: 15px; height: 15px; }
+  .amb { display: flex; align-items: center; gap: 12px; }
+  .fotos-mini { display: flex; gap: 6px; margin-top: 8px; }
+  .foto-mini { width: 64px; height: 48px; border-radius: 4px; background: linear-gradient(135deg, #A9B7BE, #6E7F88); display: grid; place-items: center; color: var(--claro); }
+  .foto-mini svg { width: 20px; height: 20px; }
+  .obs { font-size: 16px; color: var(--texto); margin-top: 6px; }
+  .comentar { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--borda); }
+  .comentar input { flex: 1; min-width: 0; min-height: 48px; padding: 0 12px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--claro); }
+
+  /* Diário */
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 14px 14px; }
+  .opcao { min-height: 52px; border: 1.5px solid var(--borda); border-radius: var(--raio); background: var(--cartao); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--escuro); }
+  .opcao svg { width: 22px; height: 22px; }
+  .opcao.marcada { background: var(--escuro); border-color: var(--escuro); color: var(--claro); }
+  .equipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .equipe { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid #E6EBEE; }
+  .equipe .n { flex: 1; font-weight: 600; }
+  .passo { width: 44px; height: 44px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--claro); font-size: 22px; font-weight: 700; color: var(--escuro); }
+  .equipe .q { width: 34px; text-align: center; font-size: 24px; font-weight: 700; }
+  .lanc { padding: 12px 14px; border-bottom: 1px solid #E6EBEE; }
+  .lanc:last-child { border-bottom: 0; }
+  .lanc .cima { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .anda { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px; }
+  .anda .opcao.sim.marcada { background: var(--verde); border-color: var(--verde); color: #fff; }
+  .anda .opcao.nao.marcada { background: var(--vermelho-forte); border-color: var(--vermelho-forte); color: #fff; }
+  .motivos { display: none; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .motivos.aberto { display: flex; }
+  .chip { min-height: 44px; padding: 0 12px; border: 1.5px solid var(--borda); border-radius: var(--raio); background: var(--cartao); font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--escuro); }
+  .chip.ativo { background: var(--vermelho-forte); border-color: var(--vermelho-forte); color: #fff; }
+  .alerta-cab { background: #FDF3E2; }
+  textarea { display: block; width: calc(100% - 28px); margin: 12px 14px 14px; min-height: 90px; padding: 10px 12px; border: 1px solid var(--borda); border-radius: var(--raio); background: var(--claro); resize: vertical; }
+  .salvar { position: fixed; left: 232px; right: 0; bottom: 0; z-index: 6; background: var(--cartao); border-top: 1px solid var(--borda); padding: 10px 24px; display: flex; align-items: center; gap: 14px; }
+  .salvar .falta { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--texto-2); }
+  .salvar .falta b { font-family: var(--sans); font-size: 26px; color: var(--vermelho); margin-right: 4px; }
+  .salvar .botao { margin-left: auto; min-width: 260px; min-height: 54px; font-size: 15px; justify-content: space-between; }
+
+  /* Vazio */
+  .vazio { text-align: center; padding: 40px 20px 44px; }
+  .vazio .ico { width: 76px; height: 76px; border-radius: 50%; background: #DDF2F4; color: var(--destaque-forte); display: grid; place-items: center; margin: 0 auto 16px; }
+  .vazio .ico svg { width: 38px; height: 38px; }
+  .vazio h2 { margin: 0 0 8px; font-size: 21px; color: var(--escuro); }
+  .vazio p { margin: 0 auto 20px; max-width: 440px; color: var(--texto-2); font-size: 16px; }
+  .selo { display: inline-block; margin-bottom: 14px; padding: 3px 8px; border: 1px dashed #B4C0C6; border-radius: 4px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--texto-2); text-transform: uppercase; }
+
+  .barra-inferior { display: none; }
+  .aviso { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 30; display: none; max-width: calc(100% - 32px); padding: 12px 18px; border-radius: var(--raio); background: var(--escuro); color: var(--claro); font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+
+  /* ---------- Celular ---------- */
+  @media (max-width: 899px) {
+    .lateral { display: none; }
+    .principal { margin-left: 0; }
+    .cab { padding: 12px 16px 0; }
+    .quem span { display: none; }
+    .conteudo { padding: 12px 16px 170px; gap: 10px; }
+    .kpis { gap: 8px; }
+    .kpi { padding: 10px 10px; }
+    .kpi .valor { font-size: 38px; }
+    .kpi .nota { font-size: 11px; }
+    .kpi .rotulo { font-size: 11px; }
+    .lista-cab .ordenar { margin-left: 0; width: 100%; }
+    .ordenar button { flex: 1; }
+    .grade-det { grid-template-columns: 1fr; }
+    .acoes .botao { flex: 1; }
+    .anda { grid-template-columns: 1fr 1fr; }
+    .anda .icone-botao { justify-content: center; }
+    .salvar { left: 0; bottom: calc(68px + env(safe-area-inset-bottom)); padding: 8px 16px; }
+    .salvar .botao { min-width: 0; flex: 1; }
+    .aviso { bottom: 160px; }
+    .barra-inferior { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--cartao); border-top: 1px solid var(--borda); padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+    .barra-inferior button { min-height: 60px; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--texto-2); font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-top: 3px solid transparent; }
+    .barra-inferior button svg { width: 24px; height: 24px; }
+    .barra-inferior button.ativo { color: var(--destaque-forte); border-top-color: var(--destaque); }
+  }
+  @media (max-width: 380px) {
+    .kpi .valor { font-size: 32px; }
+    .linha-lista .titulo { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-frentes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></symbol>
+    <symbol id="i-diario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-pend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v4M12 14h.01"/></symbol>
+    <symbol id="i-fotos" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="i-mais" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-whats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.3z"/></symbol>
+    <symbol id="i-voltar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-nuvem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1 0 9z"/></symbol>
+    <symbol id="i-chuva" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15a4 4 0 0 1-.5-8A6 6 0 0 1 18 6a4.5 4.5 0 0 1 0 9z"/><path d="M8 19l-1 2M12 19l-1 2M16 19l-1 2"/></symbol>
+  </defs>
+</svg>
+
+<aside class="lateral">
+  <div class="marca"><i><svg><use href="#i-frentes"/></svg></i>Gestão de Obras</div>
+  <nav id="menu-lateral"></nav>
+  <div class="rod">Mockup visual<br>Dados de exemplo<br>Hoje: ter · 20/10/2026</div>
+</aside>
+
+<div class="principal">
+  <header class="cab" id="cab"></header>
+  <main class="conteudo" id="conteudo"></main>
+</div>
+<nav class="barra-inferior" id="menu-inferior"></nav>
+<div class="aviso" id="aviso"></div>
+
+<script>
+/* ---------- Dados de exemplo (PRD-FRONTEND) · hoje = ter 20/10/2026 ---------- */
+const frentes = [
+  { id: 1, servico: 'Impermeabilização áreas molhadas', resp: 'ImperTec', folga: 4, perdidos: 6, semAndar: 8, limite: null, estourouHa: 2,
+    motivo: 'Falta material', inicio: '01/10', termino: '25/10', valor: 'R$ 38.500,00',
+    ambientes: [['Banho social', '09/10'], ['Suíte master', null], ['Área gourmet', null], ['Cozinha', null]],
+    tempo: [
+      ['19/10', 'nao', 'Falta material', 'Seu Raimundo', 'Manta asfáltica não chegou. Fornecedor prometeu para quarta.'],
+      ['17/10', 'com', '', 'Davidson', 'Liguei para a ImperTec: o pedido de manta foi feito atrasado. Cobrar nova data até segunda.'],
+      ['16/10', 'nao', 'Falta material', 'Seu Raimundo', ''],
+      ['13/10', 'nao', 'Falta material', 'Seu Raimundo', 'Equipe veio sem material. Foram embora às 10h.'],
+      ['12/10', 'sim', '', 'Seu Raimundo', 'Primeira demão concluída no banho social.', 2],
+    ] },
+  { id: 10, servico: 'Pintura fachada', resp: 'Pinturas Lima', folga: 3, perdidos: 4, semAndar: 1, limite: null, estourouHa: 1,
+    motivo: 'Chuva', inicio: '01/10', termino: '30/10', valor: 'R$ 27.800,00',
+    ambientes: [['Fachada', null]],
+    tempo: [
+      ['19/10', 'sim', '', 'Seu Raimundo', 'Retomaram a massa acrílica na face norte.', 1],
+      ['17/10', 'nao', 'Chuva', 'Seu Raimundo', ''],
+      ['14/10', 'nao', 'Chuva', 'Seu Raimundo', 'Chuva desde a madrugada.'],
+    ] },
+  { id: 5, servico: 'Bancadas de mármore', resp: 'Pedras Nobres', folga: 8, perdidos: 6, semAndar: 7, limite: '22/10', faltam: 2,
+    motivo: 'Não começou', inicio: '13/10', termino: '07/11', valor: 'R$ 54.200,00', naoComecou: true,
+    ambientes: [['Cozinha', null], ['Banho social', null], ['Suíte master', null], ['Área gourmet', null]],
+    tempo: [['19/10', 'nao', 'Não começou', 'Seu Raimundo', 'Empreiteiro aguardando a medida final das cubas.']] },
+  { id: 2, servico: 'Forro de gesso', resp: 'Gesso & Cia', folga: 8, perdidos: 4, semAndar: 6, limite: '24/10', faltam: 4,
+    motivo: 'Aguardando projeto', pend: true, inicio: '06/10', termino: '31/10', valor: 'R$ 21.300,00',
+    ambientes: [['Sala', '13/10'], ['Cozinha', null], ['Suíte master', null]],
+    tempo: [
+      ['19/10', 'nao', 'Aguardando projeto', 'Seu Raimundo', ''],
+      ['15/10', 'pend', '', 'Seu Raimundo', '“Altura do nicho do box da suíte master?” — aguardando a Carla.'],
+    ] },
+  { id: 4, servico: 'Elétrica — passagem de fios', resp: 'Elétrica Ramos', folga: 6, perdidos: 2, semAndar: 1, limite: '24/10', faltam: 4,
+    motivo: 'Falta gente', inicio: '22/09', termino: '30/10', valor: 'R$ 33.900,00',
+    ambientes: [['Sala', '08/10'], ['Cozinha', '15/10'], ['Suíte master', null], ['Banho social', null], ['Área gourmet', null]],
+    tempo: [
+      ['19/10', 'sim', '', 'Seu Raimundo', 'Voltou com 3 pessoas.'],
+      ['17/10', 'nao', 'Falta gente', 'Seu Raimundo', 'Só 1 eletricista apareceu.'],
+    ] },
+  { id: 3, servico: 'Instalações hidráulicas', resp: 'Hidro Sul', folga: 10, perdidos: 2, semAndar: 1, limite: '29/10', faltam: 8,
+    motivo: null, inicio: '15/09', termino: '24/10', valor: 'R$ 62.000,00',
+    ambientes: [['Cozinha', '02/10'], ['Banho social', '10/10'], ['Suíte master', null], ['Área gourmet', null]],
+    tempo: [['19/10', 'sim', '', 'Seu Raimundo', 'Teste de pressão na suíte master.', 1]] },
+  { id: 6, servico: 'Revestimento suíte master', resp: 'Hidro Sul', folga: 20, perdidos: 9, semAndar: 13, limite: '02/11', faltam: 11,
+    motivo: 'Aguardando outra frente', inicio: '29/09', termino: '17/10', valor: 'R$ 18.600,00',
+    ambientes: [['Suíte master', null]],
+    tempo: [['19/10', 'nao', 'Aguardando outra frente', 'Seu Raimundo', 'Depende da impermeabilização do box.']] },
+];
+const sit = f => f.limite === null ? 'vermelho' : (f.folga - f.perdidos <= 5 ? 'ambar' : 'verde');
+const nomeSit = { vermelho: 'Estourou a folga', ambar: 'Atenção', verde: 'No prazo' };
+const tagPrazo = f => sit(f) === 'vermelho' ? `−${f.estourouHa} ${f.estourouHa === 1 ? 'dia' : 'dias'}` : `até ${f.limite}`;
+
+/* ---------- Navegação ---------- */
+const menu = [
+  ['frentes', 'Frentes', 'i-frentes'], ['diario', 'Diário', 'i-diario'], ['pendencias', 'Pendências', 'i-pend'],
+  ['fotos', 'Fotos', 'i-fotos'], ['mais', 'Mais', 'i-mais'],
+];
+const est = { tela: 'frentes', filtro: 'todas', ordem: 'limite', frente: 1 };
+const diario = { clima: 'Sol', marcas: { 3: 'sim', 4: 'sim' }, motivo: {} };
+
+function ir(tela, extra) { est.tela = tela; Object.assign(est, extra || {}); render(); window.scrollTo(0, 0); }
+function avisar(t) { const a = document.getElementById('aviso'); a.textContent = t; a.style.display = 'block'; clearTimeout(avisar.t); avisar.t = setTimeout(() => a.style.display = 'none', 2600); }
+
+function cabObra(abas) {
+  return `
+    <div class="cab-linha">
+      <span class="obra-marca"></span>
+      <div><div class="obra-nome">Residência Alto da Boa Vista</div><div class="obra-meta">Família Andrade · entrega 15/03/2027</div></div>
+      <button class="trocar" data-trocar>Trocar ▾</button>
+      <div class="quem"><span>Davidson · Eng.</span><b>DA</b></div>
+    </div>
+    ${abas ? `<div class="abas">${abas}</div>` : '<div style="height:12px"></div>'}`;
+}
+
+/* ---------- Frentes em risco (início) ---------- */
+function telaFrentes() {
+  const n = c => frentes.filter(f => sit(f) === c).length;
+  let lista = frentes.filter(f => est.filtro === 'todas' || sit(f) === est.filtro);
+  const peso = f => sit(f) === 'vermelho' ? 0 : 1;
+  lista.sort((a, b) => peso(a) - peso(b) || (est.ordem === 'limite' ? (a.folga - a.perdidos) - (b.folga - b.perdidos) : b.semAndar - a.semAndar));
+
+  const abas = [['todas', 'Todas'], ['vermelho', 'Estourou'], ['ambar', 'Atenção'], ['verde', 'No prazo']]
+    .map(([k, t]) => `<button class="aba ${est.filtro === k ? 'ativa' : ''}" data-filtro="${k}">${t}</button>`).join('');
+  document.getElementById('cab').innerHTML = cabObra(abas);
+
+  const linhas = lista.map(f => {
+    const s = sit(f);
+    const meta = [f.resp, f.motivo, f.pend ? 'pendência de projeto' : null].filter(Boolean).join(' · ');
+    return `<button class="linha-lista ${s === 'vermelho' ? 'critica' : ''}" data-frente="${f.id}">
+      <div><div class="titulo">${f.servico}</div><div class="meta">${meta}</div></div>
+      <div class="lado">
+        <div class="parado num"><b>${f.semAndar}</b><span>${f.semAndar === 1 ? 'DIA PARADO' : 'DIAS PARADO'}</span></div>
+        <span class="tag ${s} num">${tagPrazo(f)}</span>
+      </div>
+    </button>`;
+  }).join('');
+
+  return `
+    <div class="kpis">
+      <button class="cartao kpi vermelho ${est.filtro === 'vermelho' ? 'selecionado' : ''}" data-filtro="vermelho"><div class="rotulo">Estourou a folga</div><div class="valor num">${n('vermelho')}</div><div class="nota">empurrando a entrega</div></button>
+      <button class="cartao kpi ambar ${est.filtro === 'ambar' ? 'selecionado' : ''}" data-filtro="ambar"><div class="rotulo">Atenção</div><div class="valor num">${n('ambar')}</div><div class="nota">1ª decisão até 22/10</div></button>
+      <button class="cartao kpi verde ${est.filtro === 'verde' ? 'selecionado' : ''}" data-filtro="verde"><div class="rotulo">No prazo</div><div class="valor num">${n('verde')}</div><div class="nota">folga &gt; 5 dias</div></button>
+    </div>
+
+    <div class="cartao entrega">
+      <div class="linha">
+        <div><div class="rotulo">Entrega prometida</div><div class="data num">15/03/2027</div></div>
+        <span class="tag vermelho">Em risco</span>
+      </div>
+      <div class="barra"><i style="width:41%"></i></div>
+      <div class="marcos"><span>Avanço 41%</span><span>Estrutura ✓</span><span>Instalações •</span><span>Acabamento</span></div>
+    </div>
+
+    <div class="cartao">
+      <div class="lista-cab">
+        <span class="rotulo">Frentes em risco · ${lista.length}</span>
+        <div class="ordenar" role="group" aria-label="Ordenar por">
+          <button class="${est.ordem === 'limite' ? 'ativo' : ''}" data-ordem="limite">Data limite</button>
+          <button class="${est.ordem === 'parado' ? 'ativo' : ''}" data-ordem="parado">Dias parado</button>
+        </div>
+      </div>
+      ${linhas || '<div class="linha-lista"><div class="titulo">Nenhuma frente com essa situação.</div></div>'}
+      <div class="lista-rod"><button class="link">+ 3 concluídas e não iniciadas</button><button class="link" data-ir="mais">Cronograma ›</button></div>
+    </div>
+
+    <div class="duas">
+      <button class="cartao mini" data-ir="diario"><div class="rotulo">Diário · 20/10</div><div class="val vermelho">Pendente</div></button>
+      <button class="cartao mini" data-ir="pendencias"><div class="rotulo">Pendências de projeto</div><div class="val">1 aberta · trava gesso</div></button>
+    </div>`;
+}
+
+/* ---------- Detalhe da frente ---------- */
+function telaDetalhe() {
+  const f = frentes.find(x => x.id === est.frente) || frentes[0];
+  const s = sit(f), sobra = f.folga - f.perdidos, feitos = f.ambientes.filter(a => a[1]).length;
+  document.getElementById('cab').innerHTML = `
+    <button class="voltar" data-ir="frentes"><svg><use href="#i-voltar"/></svg>Frentes</button>
+    <div class="det-titulo">${f.servico}</div>
+    <div class="det-sub"><span>${f.resp}</span><span class="tag ${s}">${nomeSit[s]}</span></div>`;
+
+  const tempo = f.tempo.map(([dia, tipo, motivo, quem, obs, fotos]) => {
+    const tag = tipo === 'sim' ? '<span class="tag verde">Andou</span>'
+      : tipo === 'nao' ? `<span class="tag vermelho">${motivo === 'Não começou' ? 'Não começou' : 'Não andou'}</span>`
+      : tipo === 'pend' ? '<span class="tag ambar">Pendência</span>' : '<span class="tag neutra">Comentário</span>';
+    const metaTxt = [quem, tipo === 'nao' && motivo !== 'Não começou' ? motivo : null].filter(Boolean).join(' · ');
+    return `<div class="linha-lista ${tipo === 'nao' ? '' : ''}" style="align-items:start">
+      <div>
+        <div class="titulo num">${dia}</div>
+        <div class="meta">${metaTxt}</div>
+        ${obs ? `<div class="obs">${obs}</div>` : ''}
+        ${fotos ? `<div class="fotos-mini">${'<div class="foto-mini"><svg><use href="#i-fotos"/></svg></div>'.repeat(fotos)}</div>` : ''}
+      </div>
+      <div class="lado">${tag}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="kpis">
+      <div class="cartao kpi ${s}"><div class="rotulo">Folga que sobra</div><div class="valor num">${sobra}</div><div class="nota">${s === 'vermelho' ? 'empurrando a entrega' : 'decidir até ' + f.limite}</div></div>
+      <div class="cartao kpi"><div class="rotulo">Dias parado</div><div class="valor num">${f.semAndar}</div><div class="nota">${f.motivo || 'andou ontem'}</div></div>
+      <div class="cartao kpi"><div class="rotulo">Ambientes</div><div class="valor num">${feitos}/${f.ambientes.length}</div><div class="nota">concluídos</div></div>
+    </div>
+
+    <div class="acoes">
+      <button class="botao" data-cobrar="${f.resp}"><svg><use href="#i-whats"/></svg>Cobrar ${f.resp}</button>
+      <button class="botao contorno"><svg><use href="#i-pend"/></svg>Abrir pendência</button>
+    </div>
+
+    <div class="grade-det">
+      <div class="col">
+        <div class="cartao">
+          <div class="lista-cab"><span class="rotulo">Cronograma</span></div>
+          <dl class="pares num">
+            <dt>Início previsto</dt><dd>${f.inicio}</dd>
+            <dt>Término previsto</dt><dd>${f.termino}</dd>
+            <dt>Folga original</dt><dd>${f.folga} dias</dd>
+            <dt class="ult">Dias perdidos</dt><dd class="ult">${f.perdidos} dias</dd>
+          </dl>
+          <div class="dinheiro"><div class="rotulo">Valor contratado</div><div class="v num">${f.valor}</div><div class="so">Só o engenheiro vê</div></div>
+        </div>
+        <div class="cartao">
+          <div class="lista-cab"><span class="rotulo">Ambientes · ${feitos} de ${f.ambientes.length}</span></div>
+          ${f.ambientes.map(([a, d]) => `<div class="linha-lista ${d ? 'feito' : ''}" style="min-height:52px">
+            <div class="amb"><span class="ok-ico">${d ? '<svg><use href="#i-check"/></svg>' : ''}</span><span class="titulo">${a}</span></div>
+            <div class="lado"><span class="tag ${d ? 'verde' : 'neutra'} num">${d ? d : 'Em aberto'}</span></div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="cartao">
+        <div class="lista-cab"><span class="rotulo">Linha do tempo</span></div>
+        ${tempo}
+        <div class="comentar"><input placeholder="Registrar decisão ou comentário…" aria-label="Comentário"><button class="botao">Enviar</button></div>
+      </div>
+    </div>`;
+}
+
+/* ---------- Diário de hoje ---------- */
+function telaDiario() {
+  document.getElementById('cab').innerHTML = cabObra(
+    ['Hoje', 'Anteriores'].map((t, i) => `<button class="aba ${i === 0 ? 'ativa' : ''}">${t}</button>`).join(''));
+  const andamento = frentes.filter(f => !f.naoComecou), atraso = frentes.filter(f => f.naoComecou);
+  const falta = frentes.filter(f => !diario.marcas[f.id]).length;
+  const motivos = ['Falta material', 'Falta gente', 'Aguardando projeto', 'Aguardando outra frente', 'Chuva', 'Outro'];
+  const lanc = (f, comecar) => {
+    const m = diario.marcas[f.id];
+    return `<div class="lanc">
+      <div class="cima"><div><div class="titulo" style="font-size:17px;font-weight:600">${f.servico}</div><div class="meta rotulo" style="margin-top:3px">${f.resp}</div></div></div>
+      <div class="anda">
+        <button class="opcao sim ${m === 'sim' ? 'marcada' : ''}" data-marca="${f.id}" data-v="sim"><svg><use href="#i-check"/></svg>${comecar ? 'Começou' : 'Andou'}</button>
+        <button class="opcao nao ${m === 'nao' ? 'marcada' : ''}" data-marca="${f.id}" data-v="nao"><svg><use href="#i-x"/></svg>${comecar ? 'Não começou' : 'Não andou'}</button>
+        <button class="icone-botao"><svg><use href="#i-check"/></svg>Concluí</button>
+        <button class="icone-botao"><svg><use href="#i-fotos"/></svg>Foto</button>
+      </div>
+      <div class="motivos ${m === 'nao' ? 'aberto' : ''}">${motivos.map(x => `<button class="chip ${diario.motivo[f.id] === x ? 'ativo' : ''}" data-motivo="${f.id}" data-v="${x}">${x}</button>`).join('')}</div>
+    </div>`;
+  };
+  const equipes = [['ImperTec', 0], ['Gesso & Cia', 2], ['Hidro Sul', 3], ['Elétrica Ramos', 3], ['Pinturas Lima', 4], ['Pedras Nobres', 0]];
+  return `
+    <div class="kpis">
+      <div class="cartao kpi ${falta ? 'vermelho' : 'verde'}"><div class="rotulo">Sem marcação</div><div class="valor num">${falta}</div><div class="nota">de ${frentes.length} frentes</div></div>
+      <div class="cartao kpi"><div class="rotulo">Pessoas hoje</div><div class="valor num">12</div><div class="nota">4 empreiteiros</div></div>
+      <div class="cartao kpi"><div class="rotulo">Fotos</div><div class="valor num">0</div><div class="nota">nenhuma ainda</div></div>
+    </div>
+
+    <div class="cartao">
+      <div class="lista-cab"><span class="rotulo">Clima · ter 20/10</span></div>
+      <div class="seg">${[['Sol', 'i-sol'], ['Nublado', 'i-nuvem'], ['Chuva', 'i-chuva']].map(([c, i]) => `<button class="opcao ${diario.clima === c ? 'marcada' : ''}" data-clima="${c}"><svg><use href="#${i}"/></svg>${c}</button>`).join('')}</div>
+    </div>
+
+    <div class="cartao">
+      <div class="lista-cab"><span class="rotulo">Frentes em andamento · ${andamento.length}</span></div>
+      ${andamento.map(f => lanc(f, false)).join('')}
+    </div>
+
+    <div class="cartao">
+      <div class="lista-cab alerta-cab"><span class="rotulo" style="color:var(--ambar-texto)">Deveriam ter começado · ${atraso.length}</span></div>
+      ${atraso.map(f => lanc(f, true)).join('')}
+    </div>
+
+    <div class="cartao">
+      <div class="lista-cab"><span class="rotulo">Equipes presentes</span></div>
+      <div class="equipes">${equipes.map(([n, q]) => `<div class="equipe"><span class="n">${n}</span><button class="passo" aria-label="Menos">−</button><span class="q num">${q}</span><button class="passo" aria-label="Mais">+</button></div>`).join('')}</div>
+    </div>
+
+    <div class="cartao">
+      <div class="lista-cab"><span class="rotulo">Ocorrências</span></div>
+      <textarea placeholder="Algo que aconteceu hoje e precisa ficar registrado…"></textarea>
+    </div>
+
+    <div class="salvar">
+      <div class="falta">${falta ? `<b class="num">${falta}</b>sem marcação` : '<span style="color:var(--verde)">Tudo marcado</span>'}</div>
+      <button class="botao" data-salvar>Salvar diário de hoje <svg><use href="#i-seta"/></svg></button>
+    </div>`;
+}
+
+/* ---------- Pendências: estado vazio de exemplo ---------- */
+function telaPendencias() {
+  document.getElementById('cab').innerHTML = cabObra(
+    ['Abertas', 'Respondidas', 'Fechadas', 'Todas'].map((t, i) => `<button class="aba ${i === 0 ? 'ativa' : ''}">${t}</button>`).join(''));
+  return `
+    <div class="cartao vazio">
+      <span class="selo">Exemplo de estado vazio</span>
+      <div class="ico"><svg><use href="#i-pend"/></svg></div>
+      <h2>Nenhuma pendência de projeto aberta</h2>
+      <p>Quando surgir uma dúvida de projeto que trave uma frente, abra aqui. A Carla recebe, e o prazo de resposta já vem da data limite da frente.</p>
+      <button class="botao"><svg><use href="#i-pend"/></svg>Abrir a primeira pendência</button>
+    </div>`;
+}
+function telaFora(nome) {
+  document.getElementById('cab').innerHTML = cabObra('');
+  return `<div class="cartao vazio"><span class="selo">Fora deste mockup</span><h2>${nome}</h2>
+    <p>Esta tela ainda não foi desenhada. O mockup cobre Frentes em risco, Detalhe da frente, Diário de hoje e o estado vazio de Pendências.</p>
+    <button class="botao contorno" data-ir="frentes">Voltar para Frentes</button></div>`;
+}
+
+/* ---------- Render e eventos ---------- */
+function render() {
+  const ativo = est.tela === 'detalhe' ? 'frentes' : est.tela;
+  document.getElementById('menu-lateral').innerHTML = menu.map(([id, t, i]) => `<button class="item-menu ${id === ativo ? 'ativo' : ''}" data-ir="${id}"><svg><use href="#${i}"/></svg>${id === 'mais' ? 'Cadastros' : t}</button>`).join('');
+  document.getElementById('menu-inferior').innerHTML = menu.map(([id, t, i]) => `<button class="${id === ativo ? 'ativo' : ''}" data-ir="${id}"><svg><use href="#${i}"/></svg>${t}</button>`).join('');
+  document.getElementById('conteudo').innerHTML = ({
+    frentes: telaFrentes, detalhe: telaDetalhe, diario: telaDiario, pendencias: telaPendencias,
+    fotos: () => telaFora('Fotos'), mais: () => telaFora('Cadastros'),
+  })[est.tela]();
+}
+document.addEventListener('click', e => {
+  const t = e.target;
+  const q = s => t.closest(s);
+  if (q('[data-cobrar]')) return avisar('No app, aqui abre o WhatsApp da ' + q('[data-cobrar]').dataset.cobrar + ' com a mensagem pronta.');
+  if (q('[data-ir]')) return ir(q('[data-ir]').dataset.ir);
+  if (q('[data-frente]')) return ir('detalhe', { frente: +q('[data-frente]').dataset.frente });
+  if (q('[data-filtro]')) { const v = q('[data-filtro]').dataset.filtro; est.filtro = est.filtro === v && q('.kpi') ? 'todas' : v; return render(); }
+  if (q('[data-ordem]')) { est.ordem = q('[data-ordem]').dataset.ordem; return render(); }
+  if (q('[data-marca]')) { diario.marcas[q('[data-marca]').dataset.marca] = q('[data-marca]').dataset.v; return render(); }
+  if (q('[data-motivo]')) { diario.motivo[q('[data-motivo]').dataset.motivo] = q('[data-motivo]').dataset.v; return render(); }
+  if (q('[data-clima]')) { diario.clima = q('[data-clima]').dataset.clima; return render(); }
+  if (q('[data-trocar]')) return avisar('No app, aqui abre a lista das suas obras. No mockup, só esta tem dados.');
+  if (q('[data-salvar]')) { const f = frentes.filter(x => !diario.marcas[x.id]).length; return avisar(f ? `Faltam ${f} frentes sem Andou/Não andou.` : 'Diário de 20/10 salvo.'); }
+});
+render();
+</script>
+</body>
+</html>
