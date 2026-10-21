@@ -16,6 +16,7 @@ import {
 import { Cabecalho, Carregando, EstadoVazio, Erro, Folha, Icon, Meta, Tag, TituloSecao, useAviso, useCarregar } from '../components/index.jsx'
 import MedioPrazo from './lookahead.jsx'
 import CurtoPrazo from './semana.jsx'
+import PlanilhaCronograma from './importar.jsx'
 
 const soDigitos = (t) => t.replace(/\D/g, '').slice(0, 3)
 const diasUteis = (n) => `${n} ${n === 1 ? 'dia útil' : 'dias úteis'}`
@@ -250,14 +251,21 @@ function Eap({ data, podeEditar, aoAbrir, aoCriar, recarregar }) {
   const [mostrarArquivadas, setMostrarArquivadas] = useState(false)
   const [vendoCalendario, setVendoCalendario] = useState(false)
 
+  const arquivadas = data.itens.filter((i) => i.arquivada).length
+  const planilha = podeEditar && (
+    <PlanilhaCronograma calendario={data.calendario} atuais={data.itens.length - arquivadas}
+      raizes={data.itens.filter((i) => i.nivel === 0 && !i.arquivada).length} recarregar={recarregar} />
+  )
   if (!data.itens.length) {
     return (
-      <EstadoVazio icone="planejamento" titulo="Esta obra ainda não tem atividades planejadas"
-        texto="A EAP é a base do planejamento: quebre a obra em atividades e subatividades. O código 1, 1.1, 1.2.1 sai sozinho."
-        acao={podeEditar ? 'Criar a primeira atividade' : null} aoAgir={() => aoCriar()} />
+      <>
+        <EstadoVazio icone="planejamento" titulo="Esta obra ainda não tem atividades planejadas"
+          texto="A EAP é a base do planejamento: quebre a obra em atividades e subatividades, ou traga o cronograma de uma planilha. O código 1, 1.1, 1.2.1 sai sozinho."
+          acao={podeEditar ? 'Criar a primeira atividade' : null} aoAgir={() => aoCriar()} />
+        {planilha && <div className="acoes" style={{ justifyContent: 'center' }}>{planilha}</div>}
+      </>
     )
   }
-  const arquivadas = data.itens.filter((i) => i.arquivada).length
   const lista = visiveisNaEap(data.itens, mostrarArquivadas)
   const { dias_semana: dias, feriados } = data.calendario
   return (
@@ -266,6 +274,7 @@ function Eap({ data, podeEditar, aoAbrir, aoCriar, recarregar }) {
         <div className="acoes">
           <button className="botao" onClick={() => aoCriar()}><Icon nome="mais_sinal" />Nova atividade</button>
           <button className="botao contorno" onClick={() => setVendoCalendario(true)}><Icon nome="cronograma" />Calendário</button>
+          {planilha}
         </div>
       )}
       <div className="cartao">

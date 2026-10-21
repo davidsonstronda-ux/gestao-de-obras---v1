@@ -35,6 +35,20 @@ export function diasUteisEntre(inicio, fim, cal) {
   return n
 }
 
+// O dia em que termina uma atividade de `dias` dias úteis que começa em `inicio`
+// (o próprio início conta, se for dia de trabalho). 1 dia = o primeiro dia útil
+// a partir do início; 0 dia = o próprio início.
+export function fimPelaDuracao(inicio, dias, cal) {
+  if (dias <= 0) return inicio
+  const d = paraData(inicio)
+  let n = 0
+  for (let guarda = 0; guarda < 5000; guarda++) {
+    if (trabalhaNoDia(paraIso(d), cal) && ++n === dias) return paraIso(d)
+    d.setDate(d.getDate() + 1)
+  }
+  return paraIso(d)
+}
+
 export function validarDiasSemana(dias) {
   if (!Array.isArray(dias) || !dias.length) return 'Escolha pelo menos um dia de trabalho.'
   if (dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return 'Dia da semana inválido.'

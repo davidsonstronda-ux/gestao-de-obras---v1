@@ -32,6 +32,7 @@ const P = {
   olho: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></>,
   sair: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></>,
   alerta: <><path d="M12 3l10 18H2z" /><path d="M12 10v4M12 17h.01" /></>,
+  enviar: <><path d="M12 15V3M7 8l5-5 5 5" /><path d="M4 21h16" /></>,
   importar: <><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 21h16" /></>,
   materiais: <><path d="M21 8l-9-5-9 5v8l9 5 9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></>,
   empresa: <><rect x="3" y="5" width="18" height="14" rx="1" /><circle cx="9" cy="10" r="2" /><path d="M21 16l-5-5-8 8" /></>,

@@ -54,6 +54,8 @@ Ainda não está no ar (Etapa 9). O padrão: a pessoa diz "sobe pro GitHub", o a
 - **"Hoje" do mock é fixo em 20/10/2026** (`src/lib/config.js`), para os números do PRD baterem. Com banco, é o dia real. Não use `new Date()` direto nas telas; use `hoje()`.
 - **Datas são texto `aaaa-mm-dd` no fuso local** (`src/lib/datas.js`). Nunca `toISOString().split('T')[0]`: vira UTC e pula um dia depois das 21h.
 - **Dia útil de obra é segunda a sábado.** Dia sem diário nenhum não conta como dia perdido.
+- **SheetJS (`xlsx`) vem do CDN oficial, não do npm.** O `package.json` aponta para `https://cdn.sheetjs.com/xlsx-0.20.3/...`; o `xlsx` do npm parou na 0.18.5, com falhas de segurança conhecidas. Nunca rode `npm i xlsx` "para atualizar". É a única biblioteca além do Supabase (decisão de 21/10) e entra por `import()` sob demanda, só quando alguém baixa ou importa planilha.
+- **Planilha: ITEM é texto, data é número de série.** Na leitura, o ITEM vem do valor formatado da célula (`cell.w`), nunca do número (1.10 viraria 1.1). Data de Excel vira `aaaa-mm-dd` pela conta do número de série, sem `Date` com fuso.
 - **O logo é dado, não código.** Vem de `obterLogo()` em `dados.js` (no mock, `localStorage` `gestao-obras:config:logo`; na Etapa 7, tabela `config` + Storage). Não troque o `<img>` por um caminho fixo. Sem logo próprio, usa `public/logo-bmr.webp`; o recorte só do símbolo (`.logo-simbolo`) vale apenas para esse arquivo.
 
 ## Higiene de código (vale para toda mudança)

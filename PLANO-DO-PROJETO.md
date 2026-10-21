@@ -125,6 +125,7 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 - **Aba Curto prazo (semana, Kanban + PPC):** colunas A fazer · Em andamento · Concluído, mover por botões. Subtarefas (checklist) dentro de cada atividade. Marcar atividade ou subtarefa como **Não realizado** exige a causa, com os **mesmos motivos do diário** (Falta material, Falta gente, Aguardando projeto, Aguardando outra frente, Chuva, Outro). Entra na semana a atividade cujo período cruza a semana **ou** que deveria ter terminado e não terminou (acumulada). **PPC** = concluídas ÷ planejadas da semana × 100: número grande, barra e "X de Y concluídas". Navegar entre semanas.
 - **Quem:** engenheiro faz tudo; mestre vê e mexe só no Curto prazo (move cartão, inclui e marca subtarefa, informa causa); arquiteta vê as 4 abas sem mexer; cliente não vê. No celular do mestre, Materiais e Planejamento ficam dentro de "Mais" (a barra só cabe 5).
 - **Vazio:** "Esta obra ainda não tem atividades planejadas. Monte a EAP pela primeira atividade."
+- **Importar cronograma por planilha (acrescentado em 21/10):** na aba EAP, **Baixar planilha modelo** (colunas ITEM, Atividade, Início, Término, Duração (Dias); ITEM formatado como texto) e **Importar planilha** (.xlsx ou .csv). A leitura é toda no navegador: nenhum dado sai do aparelho, sem IA e sem servidor. A hierarquia sai do código da coluna ITEM (1 → 1.1 → 1.1.1, em qualquer profundidade; "1.0" vale "1"). Antes de criar qualquer coisa, uma **tela de conferência** mostra a árvore e os erros (código órfão ou repetido, data inválida, término antes do início, atividade sem nome), dá para corrigir ali, e só "Confirmar importação" grava. Se a obra já tem atividades: **Adicionar** (entram depois das atuais) ou **Substituir** (as atuais vão para Arquivadas; nada se apaga). As datas alimentam o Longo prazo. Não confundir com a importação das **frentes** (Cadastros › Frentes e cronograma, MS Project), que continua como estava.
 
 ## Unidade principal
 
@@ -178,6 +179,7 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 | Supabase | banco, login e fotos | grátis até crescer |
 | Vercel | colocar no ar | grátis |
 | GitHub | guardar o código | grátis |
+| SheetJS (xlsx) | ler e gerar planilha .xlsx no navegador (importação do cronograma). Única biblioteca além do Supabase, a pedido do Davidson em 21/10 | grátis |
 
 **Total por mês:** R$ 0 no começo
 **O que custaria a alternativa pronta:** [AINDA NÃO RESPONDIDO]

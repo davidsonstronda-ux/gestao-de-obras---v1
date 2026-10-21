@@ -21,6 +21,7 @@ import {
   moverPrazo, mudancaDeStatus, nomesUnicos, paiValido, podeMarcarNaoRealizado, podeVoltarSemana, proximaOrdem, segundaDaSemana,
   semanaDe, trocarOrdem, validarCausa, validarAtividade, validarDiasSemana, validarFeriado, validarRestricao,
 } from './planejamento.js'
+import { conferirCronograma } from './importarCronograma.js'
 
 // Cópia de trabalho: as telas podem criar e editar sem estragar o original.
 const db = structuredClone({
@@ -664,6 +665,38 @@ export async function moverAtividade(id, direcao) {
   if (!troca) return falha(direcao < 0 ? 'Ela já é a primeira deste nível.' : 'Ela já é a última deste nível.')
   for (const t of troca) atividades.find((a) => a.id === t.id).ordem = t.ordem
   return ok(troca)
+}
+
+// Importar cronograma por planilha: `linhas` são as linhas de texto da tela de
+// conferência (lib/importarCronograma.js). A conferência roda de novo aqui —
+// com erro, nada é criado. Substituir arquiva as atuais (nada se apaga).
+export async function importarCronograma(linhas, modo) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro importa cronograma.')
+  const { itens, erros } = conferirCronograma(linhas || [], calendarioDe(obraId))
+  if (!itens.length) return falha('A planilha não tem nenhuma atividade.')
+  if (erros) return falha('Corrija os erros da conferência antes de importar.')
+  const atuais = daObra('atividades', obraId).filter((a) => !a.arquivada)
+  if (atuais.length && !['adicionar', 'substituir'].includes(modo)) return falha('Escolha se as atividades entram junto com as atuais ou no lugar delas.')
+  if (modo === 'substituir') for (const a of atuais) a.arquivada = true
+  // Itens já vêm ordenados pelo código: o pai sempre antes dos filhos.
+  const idPorCodigo = new Map()
+  const filhos = new Map()
+  let ordemRaiz = proximaOrdem(daObra('atividades', obraId), null)
+  for (const it of itens) {
+    const paiId = it.paiCodigo ? idPorCodigo.get(it.paiCodigo) : null
+    const ordem = paiId ? (filhos.get(paiId) || 0) + 1 : ordemRaiz++
+    if (paiId) filhos.set(paiId, ordem)
+    const a = {
+      id: novoId('at'), obra_id: obraId, pai_id: paiId, ordem, titulo: it.titulo, inicio: it.inicio, fim: it.fim,
+      frente_id: null, progresso: 0, status: 'A fazer', concluida_em: null, arquivada: false, criado_por: contexto.perfil.id,
+    }
+    db.atividades.push(a)
+    idPorCodigo.set(it.codigo, a.id)
+  }
+  return ok({ criadas: itens.length, arquivadas: modo === 'substituir' ? atuais.length : 0 })
 }
 
 // Curto prazo: a atividade como ela aparece numa semana (null se não entra nela).

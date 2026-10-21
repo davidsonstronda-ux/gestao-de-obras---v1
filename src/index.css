@@ -565,3 +565,20 @@ textarea { padding: 10px 12px; min-height: 90px; resize: vertical; }
   .ppc { gap: 14px; padding: 14px; }
   .ppc-valor { font-size: 42px; }
 }
+
+/* ---------- Planejamento: importar cronograma (conferência) ---------- */
+.imp-resumo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.imp-resumo .meta { margin-top: 0; }
+.imp-lista { overflow: hidden; }
+.imp-linha { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 10px calc(12px + var(--nivel, 0) * 18px); border-bottom: 1px solid var(--divisor); border-left: 4px solid transparent; }
+.imp-linha:last-child { border-bottom: 0; }
+.imp-linha.grupo { background: var(--campo); }
+.imp-linha.com-erro { background: var(--vermelho-claro); border-left-color: var(--vermelho); }
+.imp-linha .meta { margin-top: 0; font-size: 13px; }
+.imp-campos { display: grid; grid-template-columns: 76px 1fr 1fr 44px; grid-template-areas: "cod tit tit tirar" "ini ini fim fim"; gap: 6px; align-items: center; }
+.imp-campos input { min-height: 44px; padding: 0 10px; border: 1px solid #B4C0C6; border-radius: var(--raio); background: var(--cartao); width: 100%; min-width: 0; font-size: 16px; } /* 16px: abaixo disso o iPhone dá zoom ao tocar */
+.imp-linha.grupo .imp-titulo { font-weight: 700; }
+.imp-codigo, .imp-data { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.imp-codigo { font-weight: 700; color: var(--destaque-forte); }
+.imp-codigo { grid-area: cod; } .imp-titulo { grid-area: tit; } .imp-tirar { grid-area: tirar; justify-self: end; } .imp-inicio { grid-area: ini; } .imp-fim { grid-area: fim; }
+.aviso-campo { color: var(--ambar-texto); font-size: 14px; font-weight: 600; }
