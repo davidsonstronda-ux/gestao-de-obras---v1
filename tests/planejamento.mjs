@@ -37,13 +37,13 @@ conferir('feriado sem nome é recusado', Object.keys(validarFeriado({ data: '202
 const o1 = mockAtividades.filter((a) => a.obra_id === 'o1')
 const eap = montarEap(o1, cal1)
 const e = porId(eap)
-conferir('código automático em 3 níveis', eap.map((i) => i.codigo),
-  ['1', '2', '2.1', '2.2', '3', '3.1', '3.2', '3.3', '3.4', '3.4.1', '3.4.2', '4', null])
-conferir('nível de cada linha', [e.at1.nivel, e.at3.nivel, e.at10.nivel], [0, 1, 2])
-conferir('grupo pega início e fim das filhas', [e.at5.ehGrupo, e.at5.inicio, e.at5.fim], [true, '2026-09-29', '2026-11-07'])
+conferir('código automático pela ordem', eap.map((i) => i.codigo),
+  ['1', '2', '3', '3.1', '3.2', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', null])
+conferir('nível de cada linha', [e.at1.nivel, e.at10.nivel], [0, 1])
+conferir('grupo pega início e fim das filhas', [e.at9.ehGrupo, e.at9.inicio, e.at9.fim], [true, '2026-09-29', '2026-11-07'])
 conferir('folha não é grupo', e.at12.ehGrupo, false)
 conferir('arquivada fica sem código e fora por padrão', [e.at13.codigo, visiveisNaEap(eap, false).some((i) => i.id === 'at13'), visiveisNaEap(eap, true).length], [null, false, 13])
-conferir('grupo conta as subatividades (todas as gerações)', e.at5.subatividades, 6)
+conferir('grupo conta as subatividades', e.at9.subatividades, 3)
 
 const cal7 = { dias_semana: [0, 1, 2, 3, 4, 5, 6], feriados: [] }
 const peso = montarEap([
@@ -64,12 +64,13 @@ const grupoArquivado = montarEap([
 ], cal7)[0]
 conferir('grupo arquivado resume as filhas arquivadas', [grupoArquivado.progresso, grupoArquivado.inicio, grupoArquivado.fim], [50, '2026-01-01', '2026-01-10'])
 
-conferir('não dá para pôr a atividade dentro dela mesma nem de uma filha', paisPossiveis(eap, o1, 'at5').map((i) => i.id), ['at1', 'at2', 'at3', 'at4', 'at12'])
-conferir('pai válido', [paiValido(o1, 'at5', 'at10'), paiValido(o1, 'at5', 'at5'), paiValido(o1, 'at12', 'at13'), paiValido(o1, 'at12', 'at2'), paiValido(o1, null, null)],
+conferir('não dá para pôr a atividade dentro dela mesma nem de uma filha', paisPossiveis(eap, o1, 'at9').map((i) => i.id),
+  ['at1', 'at2', 'at3', 'at4', 'at5', 'at6', 'at7', 'at8'])
+conferir('pai válido', [paiValido(o1, 'at9', 'at10'), paiValido(o1, 'at9', 'at9'), paiValido(o1, 'at12', 'at13'), paiValido(o1, 'at12', 'at3'), paiValido(o1, null, null)],
   [false, false, false, true, true])
-conferir('subir troca com a irmã de cima', trocarOrdem(o1, 'at12', -1), [{ id: 'at12', ordem: 3 }, { id: 'at5', ordem: 4 }])
-conferir('descer pula a arquivada: já é a última', trocarOrdem(o1, 'at12', 1), null)
-conferir('primeira não sobe', trocarOrdem(o1, 'at3', -1), null)
+conferir('subir troca com a irmã de cima', trocarOrdem(o1, 'at9', -1), [{ id: 'at9', ordem: 4 }, { id: 'at6', ordem: 5 }])
+conferir('descer pula a arquivada: já é a última', trocarOrdem(o1, 'at9', 1), null)
+conferir('primeira não sobe', trocarOrdem(o1, 'at4', -1), null)
 
 conferir('% aceita 0 a 100, vazio é 0', [lerPercentual('45'), lerPercentual(''), lerPercentual('100')], [45, 0, 100])
 conferir('% recusa acima de 100, decimal e texto', [lerPercentual('101'), lerPercentual('4,5'), lerPercentual('abc')], [null, null, null])
@@ -122,20 +123,21 @@ conferir('semanas da janela, de segunda a domingo', semanasDoLookahead(HOJE, 3).
 const restr1 = mockRestricoes.filter((r) => r.obra_id === 'o1').map((r) => ({ ...r, atividade: { arquivada: false } }))
 const idsPorSemana = (q) => q.semanas.map((s) => s.restricoes.map((r) => r.id))
 const q4 = quadroLookahead(restr1, { hoje: HOJE })
-conferir('4 semanas: cada uma na semana do prazo; vencida no topo de "esta semana"', idsPorSemana(q4),
-  [['rs2', 'rs6', 'rs1', 'rs5'], ['rs3'], ['rs4'], []])
-conferir('vencida marcada e o que passa da janela contado', [q4.semanas[0].restricoes[0].vencida, q4.depois, q4.fimJanela], [true, 2, '2026-11-15'])
-conferir('resolvida só com o filtro, no fim da semana', idsPorSemana(quadroLookahead(restr1, { hoje: HOJE, mostrarResolvidas: true }))[0],
-  ['rs2', 'rs6', 'rs1', 'rs5', 'rs8'])
-conferir('filtro por responsável', quadroLookahead(restr1, { hoje: HOJE, responsavel: 'Pedras Nobres' }).semanas.map((s) => s.restricoes.length), [0, 1, 1, 0])
-const q6 = quadroLookahead(restr1, { hoje: HOJE, semanas: 6 })
-conferir('6 semanas: o mármore de 16/11 entra, a manta de 30/11 fica de fora', [q6.semanas.length, q6.semanas[4].restricoes.map((r) => r.id), q6.depois], [6, ['rs7'], 1])
+conferir('4 semanas: cada uma na semana do prazo; vencida no topo de "esta semana"', idsPorSemana(q4), [['rs1', 'rs2'], [], [], []])
+conferir('vencida marcada; a janela fecha no domingo da 4ª semana', [q4.semanas[0].restricoes[0].vencida, q4.depois, q4.fimJanela], [true, 0, '2026-11-15'])
+conferir('resolvida só com o filtro, no fim da semana', idsPorSemana(quadroLookahead(restr1, { hoje: HOJE, mostrarResolvidas: true }))[0], ['rs1', 'rs2', 'rs3'])
+conferir('filtro por responsável', quadroLookahead(restr1, { hoje: HOJE, responsavel: 'Elétrica Ramos' }).semanas.map((s) => s.restricoes.length), [1, 0, 0, 0])
+// Duas restrições de mentira, longe: 16/11 (5ª semana) e 30/11 (fora até de 6 semanas).
+const longe = [...restr1, { ...restr1[1], id: 'x', prazo: '2026-11-16' }, { ...restr1[1], id: 'y', prazo: '2026-11-30' }]
+const q6 = quadroLookahead(longe, { hoje: HOJE, semanas: 6 })
+conferir('o que passa da janela é contado; com 6 semanas, 16/11 entra e 30/11 fica de fora',
+  [quadroLookahead(longe, { hoje: HOJE }).depois, q6.semanas.length, q6.semanas[4].restricoes.map((r) => r.id), q6.depois], [2, 6, ['x'], 1])
 conferir('restrição de atividade arquivada some', quadroLookahead([{ ...restr1[0], atividade: { arquivada: true } }], { hoje: HOJE }).semanas[0].restricoes, [])
-conferir('resumo: 8 abertas, 1 vencida, prontas 2 de 8 (a atrasada conta)', resumoLookahead(eap, restr1, { hoje: HOJE }),
-  { abertas: 8, vencidas: 1, prontas: 2, naJanela: 8 })
+conferir('resumo: 2 abertas, 1 vencida, prontas 4 de 6 (a atrasada conta)', resumoLookahead(eap, restr1, { hoje: HOJE }),
+  { abertas: 2, vencidas: 1, prontas: 4, naJanela: 6 })
 conferir('mover anda 7 dias', [moverPrazo('2026-10-22', 1), moverPrazo('2026-10-29', -1)], ['2026-10-29', '2026-10-22'])
 conferir('não volta para antes desta semana', [podeVoltarSemana('2026-10-27', HOJE), podeVoltarSemana('2026-10-25', HOJE), podeVoltarSemana('2026-10-10', HOJE)], [true, false, false])
-const restricaoOk = { descricao: 'Falta cimento', tipo: 'Material', atividade_id: 'at3', prazo: HOJE, responsavel: 'Davidson' }
+const restricaoOk = { descricao: 'Falta cimento', tipo: 'Material', atividade_id: 'at4', prazo: HOJE, responsavel: 'Davidson' }
 conferir('restrição completa passa', validarRestricao(restricaoOk, HOJE), {})
 conferir('restrição nova não nasce vencida; a já gravada pode estar', [validarRestricao({ ...restricaoOk, prazo: '2026-10-19' }, HOJE).prazo, validarRestricao({ ...restricaoOk, id: 'rs2', prazo: '2026-10-17' }, HOJE)],
   ['O prazo não pode ser antes de hoje.', {}])
@@ -147,10 +149,12 @@ const sAtual = semanaDe(HOJE)
 conferir('semana de hoje e vizinhas', [sAtual, semanaVizinha(sAtual, -1).inicio, semanaVizinha(sAtual, 1).fim], [{ inicio: '2026-10-19', fim: '2026-10-25' }, '2026-10-12', '2026-11-01'])
 conferir('passada, atual, futura', [tempoDaSemana(semanaVizinha(sAtual, -1), HOJE), tempoDaSemana(sAtual, HOJE), tempoDaSemana(semanaVizinha(sAtual, 1), HOJE)], ['passada', 'atual', 'futura'])
 const daSemana = atividadesDaSemana(eap, sAtual)
-conferir('entram as que cruzam a semana e as acumuladas; concluída antes e grupo não', daSemana.map((a) => a.id), ['at3', 'at4', 'at6', 'at7', 'at8', 'at10', 'at12'])
-conferir('o revestimento (fim 17/10) entra como acumulado', daSemana.filter((a) => a.acumulada).map((a) => a.id), ['at7'])
-conferir('PPC desta semana: 0 de 7', ppcDaSemana(daSemana), { concluidas: 0, planejadas: 7, ppc: 0 })
-conferir('PPC da semana em que a alvenaria terminou: 1 de 2', ppcDaSemana(atividadesDaSemana(eap, semanaDe('2026-09-16'))), { concluidas: 1, planejadas: 2, ppc: 50 })
+conferir('entram as que cruzam a semana e as acumuladas; concluída antes (demolição) e grupo não', daSemana.map((a) => a.id),
+  ['at2', 'at4', 'at5', 'at7', 'at8', 'at10', 'at11', 'at12'])
+conferir('o revestimento (fim 17/10) entra como acumulado', daSemana.filter((a) => a.acumulada).map((a) => a.id), ['at11'])
+conferir('PPC desta semana: 2 de 8 (reboco e quadro)', ppcDaSemana(daSemana), { concluidas: 2, planejadas: 8, ppc: 25 })
+conferir('PPC da semana em que a demolição terminou: 1 de 1', ppcDaSemana(atividadesDaSemana(eap, semanaDe('2026-08-26'))), { concluidas: 1, planejadas: 1, ppc: 100 })
+conferir('o reboco (concluído em 19/10) aparece em andamento numa semana antiga', atividadesDaSemana(eap, semanaDe('2026-09-16')).find((a) => a.id === 'at2').coluna, 'Em andamento')
 conferir('sem planejadas, PPC vazio', ppcDaSemana([]).ppc, null)
 conferir('faixa do PPC (meta 80%)', [faixaPpc(80), faixaPpc(79), faixaPpc(50), faixaPpc(49), faixaPpc(null)], ['Bom', 'Regular', 'Regular', 'Baixo', null])
 conferir('concluída depois aparece em andamento na semana antiga', colunaNaSemana({ status: 'Concluído', concluida_em: '2026-10-30' }, sAtual), 'Em andamento')
@@ -164,7 +168,7 @@ conferir('"não realizado": não em semana futura nem em concluída', [
 ], [true, true, false, false])
 conferir('causa com os motivos do diário', [validarCausa({ causa: 'Chuva' }), validarCausa({ causa: 'Clima' }), validarCausa({ causa: 'Outro', causa_detalhe: ' ' })],
   [null, 'Escolha a causa.', 'Explique a causa.'])
-conferir('resumo das subtarefas', resumoSubtarefas(mockSubtarefas.filter((s) => s.atividade_id === 'at6')), { total: 4, feitas: 2, naoRealizadas: 1 })
+conferir('resumo das subtarefas', resumoSubtarefas(mockSubtarefas.filter((s) => s.atividade_id === 'at5')), { total: 4, feitas: 2, naoRealizadas: 1 })
 
 // ── camada de dados: obra e permissão ───────────────────────────────────────
 await dados.entrarComo('u1')
@@ -198,38 +202,39 @@ dados.definirContexto({ obraId: 'o1' })
 const o1dados = (await dados.listarPlanejamento()).data
 conferir('obra 1 não pegou o calendário da obra 2', [o1dados.calendario.dias_semana, o1dados.calendario.feriados.length], [[1, 2, 3, 4, 5, 6], 3])
 conferir('obra 1: 13 atividades, nenhuma da obra 2', [o1dados.itens.length, o1dados.itens.some((i) => i.obra_id !== 'o1')], [13, false])
-conferir('a linha traz o nome da frente ligada', porId(o1dados.itens).at6.frente, 'Impermeabilização áreas molhadas')
-conferir('a lista já vem com o previsto de hoje (20/10)', [porId(o1dados.itens).at10.previsto, porId(o1dados.itens).at1.previsto], [43, 100])
+conferir('a linha traz o nome da frente ligada', porId(o1dados.itens).at5.frente, 'Impermeabilização áreas molhadas')
+// Forro: 23 dias úteis de 06 a 31/10, 12 já passados antes de 20/10.
+conferir('a lista já vem com o previsto de hoje (20/10)', [porId(o1dados.itens).at10.previsto, porId(o1dados.itens).at1.previsto], [52, 100])
 
-const sub = (await dados.salvarAtividade({ titulo: 'Fachada — lixamento', inicio: '2026-10-20', fim: '2026-10-24', pai_id: 'at12', progresso: '' })).data
+const sub = (await dados.salvarAtividade({ titulo: 'Bancada da cozinha', inicio: '2026-10-20', fim: '2026-10-24', pai_id: 'at12', progresso: '' })).data
 const comSub = porId((await dados.listarPlanejamento()).data.itens)
-conferir('subatividade nova vira 4.1 e o pai vira grupo', [comSub[sub.id].codigo, comSub.at12.ehGrupo, comSub[sub.id].status], ['4.1', true, 'A fazer'])
-conferir('grupo não tem as datas mexidas pela ficha', (await dados.salvarAtividade({ id: 'at12', titulo: 'Fachada', inicio: '2020-01-01', fim: '2020-01-02', progresso: 'x' })).data.inicio, '2026-10-01')
-conferir('não põe o grupo dentro da própria filha', (await dados.salvarAtividade({ id: 'at5', titulo: 'Acabamento', pai_id: 'at10' })).erro,
+conferir('subatividade nova vira 5.3.1 (3º nível) e o pai vira grupo', [comSub[sub.id].codigo, comSub.at12.ehGrupo, comSub[sub.id].status], ['5.3.1', true, 'A fazer'])
+conferir('grupo não tem as datas mexidas pela ficha', (await dados.salvarAtividade({ id: 'at12', titulo: 'Bancadas', pai_id: 'at9', inicio: '2020-01-01', fim: '2020-01-02', progresso: 'x' })).data.inicio, '2026-10-19')
+conferir('não põe o grupo dentro da própria filha', (await dados.salvarAtividade({ id: 'at9', titulo: 'Acabamento', pai_id: 'at10' })).erro,
   'Escolha outra atividade para colocar esta dentro.')
-conferir('arquivar o grupo leva as 6 subatividades', (await dados.arquivarAtividade('at5', true)).data, 7)
-conferir('desarquivar a neta devolve ela e os 2 grupos acima', (await dados.arquivarAtividade('at10', false)).data, 3)
+conferir('arquivar o grupo leva as 4 subatividades', (await dados.arquivarAtividade('at9', true)).data, 5)
+conferir('desarquivar a neta devolve ela e os 2 grupos acima', (await dados.arquivarAtividade(sub.id, false)).data, 3)
 const parcial = porId((await dados.listarPlanejamento()).data.itens)
-conferir('as irmãs continuam arquivadas', [parcial.at6.arquivada, parcial.at10.arquivada, parcial.at5.codigo, parcial.at10.codigo], [true, false, '3', '3.1.1'])
+conferir('as irmãs continuam arquivadas', [parcial.at10.arquivada, parcial[sub.id].arquivada, parcial.at9.codigo, parcial[sub.id].codigo], [true, false, '5', '5.1.1'])
 conferir('a primeira não sobe', (await dados.moverAtividade('at1', -1)).erro, 'Ela já é a primeira deste nível.')
 conferir('calendário sem dia nenhum é recusado', (await dados.salvarDiasDeTrabalho([])).erro, 'Escolha pelo menos um dia de trabalho.')
 
 // Restrições na camada de dados.
-const novaRs = await dados.salvarRestricao({ descricao: 'Falta cimento', tipo: 'Material', atividade_id: 'at3', prazo: '2026-10-20', responsavel: ' Davidson ' })
+const novaRs = await dados.salvarRestricao({ descricao: 'Falta cimento', tipo: 'Material', atividade_id: 'at4', prazo: '2026-10-20', responsavel: ' Davidson ' })
 conferir('cria restrição aberta, com o responsável limpo', [novaRs.erro, novaRs.data?.resolvida_em, novaRs.data?.responsavel], [null, null, 'Davidson'])
 conferir('não volta a restrição para antes desta semana', (await dados.moverRestricao('rs1', -1)).erro, 'Ela já está nesta semana; não dá para voltar ao passado.')
-conferir('vencida que avança vai para hoje + 7', (await dados.moverRestricao('rs2', 1)).data.prazo, '2026-10-27')
-conferir('volta uma semana', (await dados.moverRestricao('rs3', -1)).data.prazo, '2026-10-20')
-conferir('resolver grava a data de hoje; reabrir limpa', [(await dados.resolverRestricao('rs5', true)).data.resolvida_em, (await dados.resolverRestricao('rs5', false)).data.resolvida_em], ['2026-10-20', null])
-conferir('não liga restrição a atividade arquivada', (await dados.salvarRestricao({ ...restricaoOk, atividade_id: 'at7' })).erro, 'Atividade não encontrada nesta obra.')
+conferir('vencida que avança vai para hoje + 7', (await dados.moverRestricao('rs1', 1)).data.prazo, '2026-10-27')
+conferir('avança e volta uma semana', [(await dados.moverRestricao('rs2', 1)).data.prazo, (await dados.moverRestricao('rs2', -1)).data.prazo], ['2026-10-30', '2026-10-23'])
+conferir('resolver grava a data de hoje; reabrir limpa', [(await dados.resolverRestricao('rs2', true)).data.resolvida_em, (await dados.resolverRestricao('rs2', false)).data.resolvida_em], ['2026-10-20', null])
+conferir('não liga restrição a atividade arquivada', (await dados.salvarRestricao({ ...restricaoOk, atividade_id: 'at11' })).erro, 'Atividade não encontrada nesta obra.')
 // Revisão de 21/10: restrição num grupo não travava nenhuma filha no "prontas".
-conferir('não liga restrição a um grupo', (await dados.salvarRestricao({ ...restricaoOk, atividade_id: 'at2' })).erro,
+conferir('não liga restrição a um grupo', (await dados.salvarRestricao({ ...restricaoOk, atividade_id: 'at3' })).erro,
   'Escolha uma atividade sem subatividades: a restrição trava quem executa.')
 // Revisão de 21/10: salvar a ficha de uma arquivada a mudava para o nível principal.
-conferir('atividade arquivada não se edita', (await dados.salvarAtividade({ id: 'at7', titulo: 'Revestimento', inicio: '2026-09-29', fim: '2026-10-17', progresso: '70' })).erro,
+conferir('atividade arquivada não se edita', (await dados.salvarAtividade({ id: 'at11', titulo: 'Revestimento', inicio: '2026-09-29', fim: '2026-10-17', progresso: '70' })).erro,
   'Desarquive a atividade antes de mudar.')
 const comRs = (await dados.listarPlanejamento()).data
-conferir('a restrição vem com o código da atividade', comRs.restricoes.find((r) => r.id === novaRs.data.id).atividade.codigo, '2.1')
+conferir('a restrição vem com o código da atividade', comRs.restricoes.find((r) => r.id === novaRs.data.id).atividade.codigo, '3.1')
 
 await dados.entrarComo('u3')
 dados.definirContexto({ obraId: 'o1' })
@@ -247,22 +252,22 @@ const doMestre = await dados.listarPlanejamento()
 conferir('mestre recebe a semana, sem restrição, frente nem feriado', [doMestre.erro, doMestre.data.restricoes, doMestre.data.frentes, doMestre.data.calendario.feriados, doMestre.data.subtarefas.length],
   [null, [], [], [], 9])
 conferir('mestre não mexe na EAP', (await dados.salvarAtividade({ titulo: 'X', inicio: '2026-10-20', fim: '2026-10-21' })).erro, 'Só o engenheiro monta a EAP.')
-const concluiu = (await dados.moverNoKanban('at3', 'Concluído')).data
+const concluiu = (await dados.moverNoKanban('at4', 'Concluído')).data
 conferir('concluir põe 100% e grava a data', [concluiu.status, concluiu.progresso, concluiu.concluida_em], ['Concluído', 100, '2026-10-20'])
-conferir('concluída não vira "não realizado"', (await dados.marcarNaoRealizado('at3', '2026-10-19', { causa: 'Chuva' })).erro,
+conferir('concluída não vira "não realizado"', (await dados.marcarNaoRealizado('at4', '2026-10-19', { causa: 'Chuva' })).erro,
   'Só dá para marcar o que não foi concluído, numa semana que já começou.')
-const voltou = (await dados.moverNoKanban('at3', 'Em andamento')).data
+const voltou = (await dados.moverNoKanban('at4', 'Em andamento')).data
 conferir('sair de Concluído limpa a data e não mexe no %', [voltou.concluida_em, voltou.progresso], [null, 100])
-conferir('"Outro" pede explicação', (await dados.marcarNaoRealizado('at3', '2026-10-20', { causa: 'Outro', causa_detalhe: ' ' })).erro, 'Explique a causa.')
-conferir('marca "não realizado" na semana de hoje', (await dados.marcarNaoRealizado('at3', '2026-10-20', { causa: 'Chuva' })).erro, null)
-const nrDe = async () => (await dados.listarPlanejamento()).data.naoRealizados.filter((n) => n.atividade_id === 'at3').map((n) => [n.semana, n.causa])
+conferir('"Outro" pede explicação', (await dados.marcarNaoRealizado('at4', '2026-10-20', { causa: 'Outro', causa_detalhe: ' ' })).erro, 'Explique a causa.')
+conferir('marca "não realizado" na semana de hoje', (await dados.marcarNaoRealizado('at4', '2026-10-20', { causa: 'Chuva' })).erro, null)
+const nrDe = async () => (await dados.listarPlanejamento()).data.naoRealizados.filter((n) => n.atividade_id === 'at4').map((n) => [n.semana, n.causa])
 conferir('o "não realizado" fica na segunda da semana', await nrDe(), [['2026-10-19', 'Chuva']])
-await dados.moverNoKanban('at3', 'Concluído')
+await dados.moverNoKanban('at4', 'Concluído')
 conferir('concluir na semana apaga o "não realizado" dela', await nrDe(), [])
-conferir('semana futura não recebe "não realizado"', (await dados.marcarNaoRealizado('at4', '2026-10-26', { causa: 'Chuva' })).erro,
+conferir('semana futura não recebe "não realizado"', (await dados.marcarNaoRealizado('at7', '2026-10-26', { causa: 'Chuva' })).erro,
   'Só dá para marcar o que não foi concluído, numa semana que já começou.')
-conferir('semana passada recebe', (await dados.marcarNaoRealizado('at4', '2026-10-14', { causa: 'Falta gente' })).erro, null)
-conferir('atividade fora da semana de hoje não se move', (await dados.moverNoKanban('at11', 'Em andamento')).erro, 'Esta atividade não está na semana de hoje.')
+conferir('semana passada recebe', (await dados.marcarNaoRealizado('at7', '2026-10-14', { causa: 'Falta gente' })).erro, null)
+conferir('atividade fora da semana de hoje não se move', (await dados.moverNoKanban('at1', 'Em andamento')).erro, 'Esta atividade não está na semana de hoje.')
 const sub2 = (await dados.criarSubtarefa('at4', '  Teste de continuidade ')).data
 conferir('mestre inclui subtarefa', [sub2.titulo, sub2.situacao], ['Teste de continuidade', 'Pendente'])
 conferir('subtarefa não realizada exige causa', (await dados.marcarSubtarefa(sub2.id, 'Não realizado')).erro, 'Escolha a causa.')

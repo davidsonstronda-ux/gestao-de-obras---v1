@@ -292,8 +292,7 @@ export const mockMovimentos = [
 ]
 
 // ── Planejamento (Last Planner + EAP) ──────────────────────────────────────
-// Obra 1: calendário seg–sáb com 3 feriados; EAP com 3 níveis (2.4.1), 2 grupos,
-// atividades ligadas às frentes e 1 arquivada. Obra 2: sem calendário gravado
+// Obra 1: calendário seg–sáb com 3 feriados. Obra 2: sem calendário gravado
 // (usa o padrão), nenhum feriado e só 2 atividades.
 export const mockCalendarios = [
   { id: 'cal1', obra_id: 'o1', dias_semana: [1, 2, 3, 4, 5, 6] },
@@ -305,45 +304,47 @@ export const mockFeriados = [
   { id: 'fe3', obra_id: 'o1', data: '2026-12-25', nome: 'Natal' },
 ]
 
-const at = (id, obra_id, pai_id, ordem, titulo, inicio, fim, frente_id, progresso, status, arquivada = false) => ({
+// EAP da obra 1, nas fases da obra: Demolição → Reboco → Hidráulica → Elétrica
+// → Acabamento. 12 na árvore (3 grupos com subatividades) + 1 arquivada.
+// Hoje = 20/10 (semana de 19 a 25/10):
+// - 3 concluídas: demolição (29/08), reboco (19/10) e quadro de distribuição
+//   (20/10). As duas últimas caem nesta semana: PPC = 2 de 8 = 25%.
+// - 1 acumulada: o revestimento devia ter terminado em 17/10.
+// - 2 impedidas por restrição (ver mockRestricoes): impermeabilização e fios.
+// Status com o texto do banco: 'A fazer', 'Em andamento', 'Concluído'.
+// Grupo (Hidráulica, Elétrica, Acabamento): datas e % saem das filhas.
+const at = (id, obra_id, pai_id, ordem, titulo, inicio, fim, frente_id, progresso, status, { arquivada = false, concluida_em } = {}) => ({
   id, obra_id, pai_id, ordem, titulo, inicio, fim, frente_id, progresso, status, arquivada, criado_por: 'u1',
-  concluida_em: status === 'Concluído' ? fim : null, // as concluídas do exemplo terminaram no dia previsto
+  concluida_em: status === 'Concluído' ? concluida_em || fim : null,
 })
 export const mockAtividades = [
-  at('at1', 'o1', null, 1, 'Alvenaria de vedação', '2026-08-03', '2026-09-18', 'f7', 100, 'Concluído'),
-  at('at2', 'o1', null, 2, 'Instalações', '2026-09-15', '2026-10-30', null, 0, 'A fazer'),
-  at('at3', 'o1', 'at2', 1, 'Instalações hidráulicas', '2026-09-15', '2026-10-24', 'f3', 80, 'Em andamento'),
-  at('at4', 'o1', 'at2', 2, 'Elétrica — passagem de fios', '2026-09-22', '2026-10-30', 'f4', 55, 'Em andamento'),
-  at('at5', 'o1', null, 3, 'Acabamento', '2026-09-29', '2026-11-07', null, 0, 'A fazer'),
-  at('at6', 'o1', 'at5', 1, 'Impermeabilização áreas molhadas', '2026-10-01', '2026-10-25', 'f1', 30, 'Em andamento'),
-  at('at7', 'o1', 'at5', 2, 'Revestimento suíte master', '2026-09-29', '2026-10-17', 'f6', 70, 'Em andamento'),
-  at('at8', 'o1', 'at5', 3, 'Forro de gesso', '2026-10-06', '2026-10-31', 'f2', 40, 'Em andamento'),
-  at('at9', 'o1', 'at5', 4, 'Bancadas de mármore', '2026-10-13', '2026-11-07', 'f5', 0, 'A fazer'),
-  at('at10', 'o1', 'at9', 1, 'Bancada da cozinha', '2026-10-13', '2026-10-28', 'f5', 0, 'A fazer'),
-  at('at11', 'o1', 'at9', 2, 'Bancadas dos banheiros', '2026-10-26', '2026-11-07', 'f5', 0, 'A fazer'),
-  at('at12', 'o1', null, 4, 'Pintura da fachada', '2026-10-01', '2026-10-30', 'f10', 45, 'Em andamento'),
-  at('at13', 'o1', null, 5, 'Demolição do muro antigo', '2026-03-02', '2026-03-14', null, 100, 'Concluído', true),
+  at('at1', 'o1', null, 1, 'Demolição e retirada de entulho', '2026-08-03', '2026-08-29', null, 100, 'Concluído'),
+  at('at2', 'o1', null, 2, 'Reboco interno', '2026-09-01', '2026-10-20', null, 100, 'Concluído', { concluida_em: '2026-10-19' }),
+  at('at3', 'o1', null, 3, 'Hidráulica', '2026-09-15', '2026-10-25', null, 0, 'A fazer'),
+  at('at4', 'o1', 'at3', 1, 'Tubulação de água e esgoto', '2026-09-15', '2026-10-24', 'f3', 80, 'Em andamento'),
+  at('at5', 'o1', 'at3', 2, 'Impermeabilização das áreas molhadas', '2026-10-01', '2026-10-25', 'f1', 30, 'Em andamento'),
+  at('at6', 'o1', null, 4, 'Elétrica', '2026-09-22', '2026-10-30', null, 0, 'A fazer'),
+  at('at7', 'o1', 'at6', 1, 'Passagem de fios', '2026-09-22', '2026-10-30', 'f4', 55, 'Em andamento'),
+  at('at8', 'o1', 'at6', 2, 'Quadro de distribuição', '2026-10-19', '2026-10-20', 'f4', 100, 'Concluído'),
+  at('at9', 'o1', null, 5, 'Acabamento', '2026-09-29', '2026-11-07', null, 0, 'A fazer'),
+  at('at10', 'o1', 'at9', 1, 'Forro de gesso', '2026-10-06', '2026-10-31', 'f2', 40, 'Em andamento'),
+  at('at11', 'o1', 'at9', 2, 'Revestimento da suíte master', '2026-09-29', '2026-10-17', 'f6', 70, 'Em andamento'),
+  at('at12', 'o1', 'at9', 3, 'Bancadas de mármore', '2026-10-19', '2026-11-07', 'f5', 0, 'A fazer'),
+  at('at13', 'o1', null, 6, 'Piso da área gourmet (saiu do escopo)', '2026-11-09', '2026-11-20', null, 0, 'A fazer', { arquivada: true }),
   at('at20', 'o2', null, 1, 'Fundação', '2026-10-01', '2026-11-15', null, 0, 'A fazer'),
   at('at21', 'o2', 'at20', 1, 'Estacas e blocos', '2026-10-01', '2026-11-15', 'f11', 35, 'Em andamento'),
 ]
 
-// Médio prazo (lookahead). Hoje = 20/10 (semana de 19/10). Obra 1: um de cada
-// tipo, 1 vencida (manta, prazo 17/10), 1 resolvida e 2 além de 4 semanas
-// (mármore em 16/11 e o 2º lote de manta em 30/11). Prontas na janela de 4 semanas: 2 de 8
-// (hidráulica e revestimento). Obra 2: uma só.
+// Médio prazo (lookahead). Obra 1: 2 atividades impedidas por restrição aberta
+// (a manta venceu em 17/10) e 1 restrição já resolvida. Prontas na janela de
+// 4 semanas: 4 de 6. Obra 2: uma só.
 const rs = (id, obra_id, atividade_id, tipo, descricao, prazo, responsavel, resolvida_em = null) => ({
   id, obra_id, atividade_id, tipo, descricao, prazo, responsavel, resolvida_em,
 })
 export const mockRestricoes = [
-  rs('rs1', 'o1', 'at8', 'Projeto', 'Detalhe do forro da sala (luminotécnica)', '2026-10-22', 'Carla'),
-  rs('rs2', 'o1', 'at6', 'Material', 'Manta asfáltica em falta no fornecedor', '2026-10-17', 'Davidson'),
-  rs('rs3', 'o1', 'at10', 'Método', 'Gabarito da bancada depende da marcenaria', '2026-10-27', 'Pedras Nobres'),
-  rs('rs4', 'o1', 'at11', 'Equipamento', 'Içamento das pedras para o 2º pavimento', '2026-11-03', 'Pedras Nobres'),
-  rs('rs5', 'o1', 'at4', 'Mão de obra', 'Equipe reduzida: faltam 2 eletricistas', '2026-10-23', 'Elétrica Ramos'),
-  rs('rs6', 'o1', 'at12', 'Segurança', 'Andaime sem guarda-corpo no 3º nível', '2026-10-21', 'Seu Raimundo'),
-  rs('rs7', 'o1', 'at11', 'Logística', 'Entrega do mármore só pela manhã (rua estreita)', '2026-11-16', 'Davidson'),
-  rs('rs8', 'o1', 'at3', 'Material', 'Registros de pressão do banho social', '2026-10-24', 'Hidro Sul', '2026-10-19'),
-  rs('rs9', 'o1', 'at6', 'Material', 'Segundo lote de manta para a área gourmet', '2026-11-30', 'Davidson'),
+  rs('rs1', 'o1', 'at5', 'Material', 'Manta asfáltica em falta no fornecedor', '2026-10-17', 'Davidson'),
+  rs('rs2', 'o1', 'at7', 'Mão de obra', 'Equipe reduzida: faltam 2 eletricistas', '2026-10-23', 'Elétrica Ramos'),
+  rs('rs3', 'o1', 'at4', 'Material', 'Registros de pressão do banho social', '2026-10-24', 'Hidro Sul', '2026-10-19'),
   rs('rs20', 'o2', 'at21', 'Projeto', 'Laudo da sondagem complementar', '2026-10-30', 'Davidson'),
 ]
 
@@ -354,20 +355,20 @@ const st = (id, obra_id, atividade_id, titulo, situacao = 'Pendente', causa = nu
   id, obra_id, atividade_id, titulo, situacao, causa, causa_detalhe: null,
 })
 export const mockSubtarefas = [
-  st('st1', 'o1', 'at6', 'Limpeza e regularização da base', 'Feita'),
-  st('st2', 'o1', 'at6', 'Primer', 'Feita'),
-  st('st3', 'o1', 'at6', 'Manta: primeira camada', 'Não realizado', 'Falta material'),
-  st('st4', 'o1', 'at6', 'Teste de estanqueidade (72 h)'),
-  st('st5', 'o1', 'at8', 'Medição e marcação do nível', 'Feita'),
-  st('st6', 'o1', 'at8', 'Estrutura metálica da sala'),
-  st('st7', 'o1', 'at8', 'Placas e tratamento de juntas'),
-  st('st8', 'o1', 'at12', 'Lixamento', 'Feita'),
-  st('st9', 'o1', 'at12', 'Selador'),
+  st('st1', 'o1', 'at5', 'Limpeza e regularização da base', 'Feita'),
+  st('st2', 'o1', 'at5', 'Primer', 'Feita'),
+  st('st3', 'o1', 'at5', 'Manta: primeira camada', 'Não realizado', 'Falta material'),
+  st('st4', 'o1', 'at5', 'Teste de estanqueidade (72 h)'),
+  st('st5', 'o1', 'at10', 'Medição e marcação do nível', 'Feita'),
+  st('st6', 'o1', 'at10', 'Estrutura metálica da sala'),
+  st('st7', 'o1', 'at10', 'Placas e tratamento de juntas'),
+  st('st8', 'o1', 'at2', 'Chapisco', 'Feita'),
+  st('st9', 'o1', 'at2', 'Reboco das paredes', 'Feita'),
   st('st20', 'o2', 'at21', 'Estacas do bloco B1', 'Feita'),
   st('st21', 'o2', 'at21', 'Estacas do bloco B2'),
 ]
 
 export const mockNaoRealizados = [
-  { id: 'nr1', obra_id: 'o1', atividade_id: 'at6', semana: '2026-10-12', causa: 'Falta material', causa_detalhe: null, autor_id: 'u2' },
-  { id: 'nr2', obra_id: 'o1', atividade_id: 'at8', semana: '2026-10-12', causa: 'Aguardando projeto', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr1', obra_id: 'o1', atividade_id: 'at5', semana: '2026-10-12', causa: 'Falta material', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr2', obra_id: 'o1', atividade_id: 'at10', semana: '2026-10-12', causa: 'Aguardando projeto', causa_detalhe: null, autor_id: 'u2' },
 ]
