@@ -44,7 +44,7 @@ conferir('mestre vê o empreiteiro', det.empreiteiro?.nome, 'ImperTec')
 conferir('mestre não libera foto', (await dados.liberarFotos(['p6'], true)).erro, 'Só o engenheiro libera foto ao cliente.')
 
 // Diário: não salva incompleto; salvo, recalcula a lista.
-const hojeDiario = (await dados.diarioDeHoje()).data
+const hojeDiario = (await dados.diarioDoDia()).data
 conferir('diário de hoje ainda não lançado', hojeDiario.existente, null)
 conferir('diário incompleto é recusado', (await dados.salvarDiario({ clima: 'Sol', marcas: {} })).erro?.startsWith('Faltam 7 frentes'), true)
 const marcas = Object.fromEntries(hojeDiario.frentes.map((f) => [f.id, f.id === 'f5' ? { situacao: 'Andou' } : { situacao: 'Não andou', motivo: 'Chuva' }]))
@@ -52,6 +52,23 @@ conferir('diário completo salva', (await dados.salvarDiario({ clima: 'Chuva', m
 const depois = (await dados.listarFrentesEmRisco()).data
 conferir('bancadas começou: virou Em andamento', depois.frentes.find((f) => f.id === 'f5').situacao, 'Em andamento')
 conferir('forro perdeu mais um dia: folga 3', depois.frentes.find((f) => f.id === 'f2').calculo.folgaRestante, 3)
+
+// Diário de outro dia: o mestre só lê o antigo e não grava nele nem forçando.
+const antigo = (await dados.diarioDoDia('2026-10-13')).data
+conferir('diário de 13/10 abre só leitura para o mestre', [antigo.acesso.editavel, antigo.existente?.id], [false, 'd1-2026-10-13'])
+conferir('só leitura mostra o que foi marcado', antigo.frentes.every((f) => antigo.marcas[f.id]), true)
+conferir('mestre não grava no diário antigo', (await dados.salvarDiario({ data: '2026-10-13', clima: 'Sol', marcas: antigo.marcas })).erro,
+  'Só leitura: o prazo de edição deste diário acabou.')
+conferir('dia futuro é recusado', (await dados.diarioDoDia('2026-10-21')).erro, 'Data inválida para o diário.')
+conferir('mestre abre o de ontem para editar', (await dados.diarioDoDia('2026-10-19')).data.acesso.editavel, true)
+
+// Engenheiro na obra 2: o diário de 13/10 é o DELA, não o da obra 1.
+await dados.entrarComo('u1')
+dados.definirContexto({ obraId: 'o2' })
+const o2dia = (await dados.diarioDoDia('2026-10-13')).data
+conferir('obra 2: diário de 13/10 é o da obra 2', [o2dia.existente?.id, o2dia.acesso.editavel], ['d2-2026-10-13', true])
+conferir('obra 2: só frente da obra 2 no diário', o2dia.frentes.every((f) => f.obra_id === 'o2'), true)
+conferir('obra 2: dia sem diário abre em branco', (await dados.diarioDoDia('2026-10-12')).data.existente, null)
 
 // Cliente: só o painel, sem empreiteiro e sem serviço.
 await dados.entrarComo('u4')

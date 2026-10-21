@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { createPortal } from 'react-dom'
 import { useSessao } from '../lib/SessaoContext.jsx'
 import { formatarData } from '../lib/datas.js'
-import { MENUS, pode } from '../lib/permissoes.js'
+import { MENUS, itensDaBarra, pode } from '../lib/permissoes.js'
 import { folgaConsumida } from '../lib/atraso.js'
 
 // ── Ícones (SVG inline; nada de emoji) ──────────────────────────────────────
@@ -21,6 +21,7 @@ const P = {
   equipe: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   whats: <path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.3z" />,
   voltar: <path d="M15 18l-6-6 6-6" />,
+  avancar: <path d="M9 18l6-6-6-6" />,
   seta: <path d="M5 12h14M13 6l6 6-6 6" />,
   check: <path d="M5 12l5 5 9-10" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
@@ -32,7 +33,14 @@ const P = {
   sair: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></>,
   alerta: <><path d="M12 3l10 18H2z" /><path d="M12 10v4M12 17h.01" /></>,
   importar: <><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 21h16" /></>,
+  materiais: <><path d="M21 8l-9-5-9 5v8l9 5 9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></>,
   empresa: <><rect x="3" y="5" width="18" height="14" rx="1" /><circle cx="9" cy="10" r="2" /><path d="M21 16l-5-5-8 8" /></>,
+  metodo: <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />,
+  equipamento: <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z" />,
+  projeto: <><path d="M3 21l3.5-1 12-12-2.5-2.5-12 12z" /><path d="M14 6.5l2.5 2.5" /></>,
+  seguranca: <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />,
+  logistica: <><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></>,
+  planejamento: <><rect x="9" y="2" width="6" height="5" rx="1" /><rect x="2" y="17" width="6" height="5" rx="1" /><rect x="16" y="17" width="6" height="5" rx="1" /><path d="M12 7v5M5 17v-5h14v5" /></>,
 }
 export function Icon({ nome, tamanho }) {
   return (
@@ -260,7 +268,7 @@ export function Cabecalho({ abas, voltar, titulo, sub }) {
 
 // ── Casca: menu lateral (computador) + barra inferior (celular) ─────────────
 export const ROTULOS = {
-  frentes: 'Frentes', diario: 'Diário', pendencias: 'Pendências', fotos: 'Fotos', mais: 'Mais', painel: 'Painel',
+  frentes: 'Frentes', diario: 'Diário', pendencias: 'Pendências', fotos: 'Fotos', materiais: 'Materiais', planejamento: 'Planejamento', mais: 'Mais', painel: 'Painel',
   obras: 'Obras', cronograma: 'Frentes e cronograma', empreiteiros: 'Empreiteiros e ambientes', equipe: 'Equipe', empresa: 'Empresa e logo',
 }
 export const CADASTROS = ['obras', 'cronograma', 'empreiteiros', 'equipe', 'empresa']
@@ -269,7 +277,10 @@ const PAI = { frente: 'frentes', pendencia: 'pendencias', obras: 'mais', cronogr
 
 export function Casca({ role, tela, goto, children }) {
   const itens = MENUS[role].itens
+  const barra = itensDaBarra(role)
   const ativo = PAI[tela] || tela
+  // No celular, o que mora dentro de "Mais" acende o "Mais".
+  const ativoBarra = barra.includes(ativo) ? ativo : itens.includes('mais') ? 'mais' : ativo
   return (
     <div className="app">
       <aside className="lateral">
@@ -294,10 +305,10 @@ export function Casca({ role, tela, goto, children }) {
         <div className="rod">Dados de exemplo. O que você lançar volta ao original quando recarregar a página.</div>
       </aside>
       <div className="principal">{children}</div>
-      {itens.length > 1 && (
+      {barra.length > 1 && (
         <nav className="barra-inferior">
-          {itens.map((id) => (
-            <button key={id} className={ativo === id ? 'ativo' : ''} aria-current={ativo === id ? 'page' : undefined} onClick={() => goto(id)}>
+          {barra.map((id) => (
+            <button key={id} className={ativoBarra === id ? 'ativo' : ''} aria-current={ativoBarra === id ? 'page' : undefined} onClick={() => goto(id)}>
               <Icon nome={id} />{ROTULOS[id]}
             </button>
           ))}
@@ -312,7 +323,7 @@ export function Casca({ role, tela, goto, children }) {
 const CHAVE_TELA = 'gestao-obras:tela'
 export function useRota(role) {
   const { inicio, itens } = MENUS[role]
-  const permitidas = new Set([...itens, ...(itens.includes('mais') ? CADASTROS : [])])
+  const permitidas = new Set([...itens, ...(itens.includes('mais') && pode(role, 'cadastrar') ? CADASTROS : [])])
   const [rota, setRota] = useState(() => {
     let salva = null
     try { salva = sessionStorage.getItem(`${CHAVE_TELA}:${role}`) } catch (_) { /* sem armazenamento */ }

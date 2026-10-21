@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
-import { diarioDeHoje, salvarDiario } from '../lib/dados.js'
-import { CLIMAS, validarDiario } from '../lib/diario.js'
+import { diarioDoDia, salvarDiario } from '../lib/dados.js'
+import { CLIMAS, diaVizinho, validarDiario } from '../lib/diario.js'
 import { MOTIVOS } from '../lib/atraso.js'
-import { formatarData, diaDaSemana } from '../lib/datas.js'
+import { hoje } from '../lib/config.js'
+import { formatarData, formatarDiaMes, diaDaSemana } from '../lib/datas.js'
 import { Cabecalho, Carregando, EstadoVazio, Erro, Icon, TituloSecao, useAviso, useCarregar } from '../components/index.jsx'
 
 const ICONE_CLIMA = { Sol: 'sol', Nublado: 'nublado', Chuva: 'chuva' }
 
 export default function Diario({ goto }) {
   const avisar = useAviso()
-  const { carregando, data, erro, recarregar } = useCarregar(diarioDeHoje)
+  const hj = hoje()
+  const [dia, setDia] = useState(hj)
+  const { carregando, data, erro, recarregar } = useCarregar(() => diarioDoDia(dia), [dia])
   const [clima, setClima] = useState('Sol')
   const [marcas, setMarcas] = useState({})
   const [equipes, setEquipes] = useState({})
@@ -19,24 +22,44 @@ export default function Diario({ goto }) {
   const [abertoConcluir, setAbertoConcluir] = useState(null)
   const [salvando, setSalvando] = useState(false)
 
-  // Diário já lançado hoje: o formulário abre preenchido para editar.
+  // A cada dia aberto o formulário recomeça: preenchido se o diário já existe,
+  // em branco se não. Nada do dia anterior sobra na tela.
   useEffect(() => {
     if (!data) return
+    const d = data.existente
     setMarcas(data.marcas)
-    if (data.existente) {
-      setClima(data.existente.clima)
-      setOcorrencias(data.existente.ocorrencias || '')
-      setEquipes(Object.fromEntries((data.existente.equipes || []).map((e) => [e.empreiteiro_id, e.pessoas])))
-    }
+    setClima(d ? d.clima : 'Sol')
+    setOcorrencias(d?.ocorrencias || '')
+    setEquipes(Object.fromEntries((d?.equipes || []).map((e) => [e.empreiteiro_id, e.pessoas])))
+    setConcluidos([])
+    setFotos([])
+    setAbertoConcluir(null)
   }, [data])
 
-  const titulo = <Cabecalho abas={<button className="aba ativa">Hoje</button>} />
-  if (carregando && !data) return <>{titulo}<main className="conteudo"><Carregando alto /></main></>
+  const anterior = diaVizinho(dia, -1, hj)
+  const seguinte = diaVizinho(dia, 1, hj)
+  const titulo = (
+    <Cabecalho abas={<>
+      <button className="aba dia" aria-label="Dia anterior" disabled={!anterior} onClick={() => setDia(anterior)}><Icon nome="voltar" /></button>
+      <span className="aba dia ativa" aria-live="polite">{dia === hj ? 'Hoje' : <span className="num">{diaDaSemana(dia)} {formatarDiaMes(dia)}</span>}</span>
+      <button className="aba dia" aria-label="Dia seguinte" disabled={!seguinte} onClick={() => setDia(seguinte)}><Icon nome="avancar" /></button>
+      {dia !== hj && <button className="aba dia" onClick={() => setDia(hj)}>Voltar para hoje</button>}
+    </>} />
+  )
+  if (carregando && data?.data !== dia) return <>{titulo}<main className="conteudo"><Carregando alto /></main></>
   if (erro) return <>{titulo}<main className="conteudo"><Erro mensagem={erro} aoTentar={recarregar} /></main></>
-  if (!data.frentes.length) {
+  const { editavel, motivo } = data.acesso
+  if (!data.existente && !editavel) {
     return (
       <>{titulo}<main className="conteudo">
-        <EstadoVazio icone="diario" titulo="Nenhuma frente em andamento nesta obra hoje"
+        <EstadoVazio icone="diario" titulo={`Sem diário lançado em ${formatarDiaMes(dia)}`} texto={motivo} />
+      </main></>
+    )
+  }
+  if (!data.frentes.length && editavel) {
+    return (
+      <>{titulo}<main className="conteudo">
+        <EstadoVazio icone="diario" titulo={`Nenhuma frente em andamento nesta obra ${data.ehHoje ? 'hoje' : `em ${formatarDiaMes(dia)}`}`}
           texto="Quando houver frente em andamento ou com início vencido, ela aparece aqui para você marcar." />
       </main></>
     )
@@ -53,13 +76,14 @@ export default function Diario({ goto }) {
     if (problemas.length) return avisar(problemas[0], 'erro')
     setSalvando(true)
     const { erro: e } = await salvarDiario({
-      clima, ocorrencias, marcas, concluidos, fotos,
+      data: data.data, clima, ocorrencias, marcas, concluidos, fotos,
       equipes: Object.entries(equipes).filter(([, n]) => n > 0).map(([empreiteiro_id, n]) => ({ empreiteiro_id, pessoas: n })),
     })
     setSalvando(false)
     if (e) return avisar(e, 'erro')
     avisar(`Diário de ${formatarData(data.data)} salvo.`)
-    goto('frentes')
+    if (data.ehHoje) goto('frentes')
+    else recarregar()
   }
 
   const lanc = (f) => {
@@ -82,19 +106,19 @@ export default function Diario({ goto }) {
             onClick={() => marcar(f.id, { situacao: 'Não andou' })}>
             <Icon nome="x" />{comecar ? 'Não começou' : 'Não andou'}
           </button>
-          {!comecar && f.ambientesAbertos.length > 0 && (
+          {editavel && !comecar && f.ambientesAbertos.length > 0 && (
             <button className={`icone-botao ${meusConcluidos ? 'marcado' : ''}`} onClick={() => setAbertoConcluir(abertoConcluir === f.id ? null : f.id)}>
               <Icon nome="check" />Concluí{meusConcluidos > 0 && <span className="conta">{meusConcluidos}</span>}
             </button>
           )}
-          <label className={`icone-botao ${minhasFotos ? 'marcado' : ''}`}>
+          {editavel && <label className={`icone-botao ${minhasFotos ? 'marcado' : ''}`}>
             <Icon nome="fotos" />Foto{minhasFotos > 0 && <span className="conta">{minhasFotos}</span>}
             <input type="file" accept="image/*" capture="environment" className="so-leitor"
               onChange={(e) => {
                 if (e.target.files?.length) setFotos((fs) => [...fs, ...Array.from(e.target.files, () => ({ frente_id: f.id }))])
                 e.target.value = ''
               }} />
-          </label>
+          </label>}
         </div>
         {m.situacao === 'Não andou' && (
           <div className="sub">
@@ -114,7 +138,7 @@ export default function Diario({ goto }) {
         )}
         {abertoConcluir === f.id && (
           <div className="sub">
-            <div className="rotulo">Quais ambientes ficaram prontos hoje?</div>
+            <div className="rotulo">Quais ambientes ficaram prontos {data.ehHoje ? 'hoje' : `em ${formatarDiaMes(dia)}`}?</div>
             <div className="chips">
               {f.ambientesAbertos.map((a) => (
                 <button key={a.id} className={`chip ${concluidos.includes(a.id) ? 'ativo ok' : ''}`} aria-pressed={concluidos.includes(a.id)}
@@ -134,71 +158,76 @@ export default function Diario({ goto }) {
     <>
       {titulo}
       <main className="conteudo">
-        <div className="kpis">
-          <div className={`cartao kpi ${semMarca ? 'vermelho' : 'verde'}`}>
-            <div className="rotulo">Sem marcação</div><div className="valor num">{semMarca}</div><div className="nota">de {frentesIds.length} frentes</div>
-          </div>
-          <div className="cartao kpi"><div className="rotulo">Pessoas hoje</div><div className="valor num">{pessoas}</div>
-            <div className="nota">{Object.values(equipes).filter((n) => n > 0).length} empreiteiros</div></div>
-          <div className="cartao kpi"><div className="rotulo">Fotos</div><div className="valor num">{fotos.length}</div>
-            <div className="nota">{fotos.length ? 'aguardam liberação' : 'nenhuma ainda'}</div></div>
-        </div>
+        {!editavel && <div className="cartao leitura" role="status"><Icon nome="olho" />{motivo}</div>}
+        <fieldset className="travado" disabled={!editavel}>
+          {editavel && <div className="kpis">
+            <div className={`cartao kpi ${semMarca ? 'vermelho' : 'verde'}`}>
+              <div className="rotulo">Sem marcação</div><div className="valor num">{semMarca}</div><div className="nota">de {frentesIds.length} frentes</div>
+            </div>
+            <div className="cartao kpi"><div className="rotulo">{data.ehHoje ? 'Pessoas hoje' : 'Pessoas no dia'}</div><div className="valor num">{pessoas}</div>
+              <div className="nota">{Object.values(equipes).filter((n) => n > 0).length} empreiteiros</div></div>
+            <div className="cartao kpi"><div className="rotulo">Fotos</div><div className="valor num">{fotos.length}</div>
+              <div className="nota">{fotos.length ? 'aguardam liberação' : 'nenhuma ainda'}</div></div>
+          </div>}
 
-        <div className="cartao">
-          <div className="lista-cab">
-            <TituloSecao conta={`${diaDaSemana(data.data)} ${formatarData(data.data)}`}>Clima de hoje</TituloSecao>
-            {data.existente && <span className="direita"><span className="tag verde">Já lançado hoje</span></span>}
-          </div>
-          <div className="seg">
-            {CLIMAS.map((c) => (
-              <button key={c} className={`opcao ${clima === c ? 'marcada' : ''}`} aria-pressed={clima === c} onClick={() => setClima(c)}>
-                <Icon nome={ICONE_CLIMA[c]} />{c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {andamento.length > 0 && (
           <div className="cartao">
-            <div className="lista-cab"><TituloSecao conta={andamento.length}>Frentes em andamento</TituloSecao></div>
-            {andamento.map(lanc)}
+            <div className="lista-cab">
+              <TituloSecao conta={`${diaDaSemana(data.data)} ${formatarData(data.data)}`}>{data.ehHoje ? 'Clima de hoje' : 'Clima do dia'}</TituloSecao>
+              {data.existente && <span className="direita"><span className="tag verde">{data.ehHoje ? 'Já lançado hoje' : 'Já lançado'}</span></span>}
+            </div>
+            <div className="seg">
+              {CLIMAS.map((c) => (
+                <button key={c} className={`opcao ${clima === c ? 'marcada' : ''}`} aria-pressed={clima === c} onClick={() => setClima(c)}>
+                  <Icon nome={ICONE_CLIMA[c]} />{c}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-        {atrasadas.length > 0 && (
+
+          {andamento.length > 0 && (
+            <div className="cartao">
+              <div className="lista-cab"><TituloSecao conta={andamento.length}>Frentes em andamento</TituloSecao></div>
+              {andamento.map(lanc)}
+            </div>
+          )}
+          {atrasadas.length > 0 && (
+            <div className="cartao">
+              <div className="lista-cab alerta-cab"><TituloSecao conta={atrasadas.length}>Deveriam ter começado</TituloSecao></div>
+              {atrasadas.map(lanc)}
+            </div>
+          )}
+
           <div className="cartao">
-            <div className="lista-cab alerta-cab"><TituloSecao conta={atrasadas.length}>Deveriam ter começado</TituloSecao></div>
-            {atrasadas.map(lanc)}
+            <div className="lista-cab"><TituloSecao>Equipes presentes</TituloSecao></div>
+            <div className="equipes">
+              {data.empreiteiros.map((e) => {
+                const n = equipes[e.id] || 0
+                return (
+                  <div key={e.id} className="equipe">
+                    <span className="n">{e.nome}</span>
+                    <button className="passo" aria-label={`Menos uma pessoa da ${e.nome}`} onClick={() => setEquipes((q) => ({ ...q, [e.id]: Math.max(0, n - 1) }))}>−</button>
+                    <span className="q num" aria-live="polite">{n}</span>
+                    <button className="passo" aria-label={`Mais uma pessoa da ${e.nome}`} onClick={() => setEquipes((q) => ({ ...q, [e.id]: n + 1 }))}>+</button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        )}
 
-        <div className="cartao">
-          <div className="lista-cab"><TituloSecao>Equipes presentes</TituloSecao></div>
-          <div className="equipes">
-            {data.empreiteiros.map((e) => {
-              const n = equipes[e.id] || 0
-              return (
-                <div key={e.id} className="equipe">
-                  <span className="n">{e.nome}</span>
-                  <button className="passo" aria-label={`Menos uma pessoa da ${e.nome}`} onClick={() => setEquipes((q) => ({ ...q, [e.id]: Math.max(0, n - 1) }))}>−</button>
-                  <span className="q num" aria-live="polite">{n}</span>
-                  <button className="passo" aria-label={`Mais uma pessoa da ${e.nome}`} onClick={() => setEquipes((q) => ({ ...q, [e.id]: n + 1 }))}>+</button>
-                </div>
-              )
-            })}
+          <div className="cartao">
+            <div className="lista-cab"><label className="rotulo" htmlFor="ocorrencias">Ocorrências do dia</label></div>
+            <div style={{ padding: 14 }}>
+              <textarea id="ocorrencias" placeholder="Algo que aconteceu hoje e precisa ficar registrado…" value={ocorrencias} onChange={(e) => setOcorrencias(e.target.value)} />
+            </div>
           </div>
-        </div>
+        </fieldset>
 
-        <div className="cartao">
-          <div className="lista-cab"><label className="rotulo" htmlFor="ocorrencias">Ocorrências do dia</label></div>
-          <div style={{ padding: 14 }}>
-            <textarea id="ocorrencias" placeholder="Algo que aconteceu hoje e precisa ficar registrado…" value={ocorrencias} onChange={(e) => setOcorrencias(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="salvar">
+        {editavel && <div className="salvar">
           <div className="falta">{semMarca ? <><b className="num">{semMarca}</b>sem marcação</> : <span style={{ color: 'var(--verde)' }}>Tudo marcado</span>}</div>
-          <button className="botao" disabled={salvando} onClick={salvar}>{salvando ? 'Salvando…' : 'Salvar diário de hoje'}</button>
-        </div>
+          <button className="botao" disabled={salvando || carregando} onClick={salvar}>
+            {salvando ? 'Salvando…' : `Salvar diário de ${data.ehHoje ? 'hoje' : formatarDiaMes(dia)}`}
+          </button>
+        </div>}
       </main>
     </>
   )

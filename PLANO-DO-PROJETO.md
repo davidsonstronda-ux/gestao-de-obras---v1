@@ -1,7 +1,7 @@
 # Plano do Projeto — Gestão de Obras (nome provisório)
 
 > Fonte da verdade deste projeto. Quando mudar de ideia, mude aqui primeiro.
-> Última atualização: 20/10/2026 — Etapas 1 e 3 escritas, Etapa 2 pendente. PRD-FRONTEND.md e PRD-BACKEND.md gerados em 20/10. Os 7 pontos que estavam [A CONFIRMAR] foram decididos pelo Davidson em 20/10 (ver "Decisões de 20/10" na Etapa 3). Resolvido em 20/10: são várias obras, com seletor; a Medição foi para a segunda entrega.
+> Última atualização: 21/10/2026 — acrescentado o módulo Planejamento (Last Planner + EAP), decidido pelo Davidson em 21/10: atividades ligadas às frentes, mestre só no Curto prazo, causas = motivos do diário. Antes: 20/10/2026 — Etapas 1 e 3 escritas, Etapa 2 pendente. PRD-FRONTEND.md e PRD-BACKEND.md gerados em 20/10. Os 7 pontos que estavam [A CONFIRMAR] foram decididos pelo Davidson em 20/10 (ver "Decisões de 20/10" na Etapa 3). Resolvido em 20/10: são várias obras, com seletor; a Medição foi para a segunda entrega.
 > O rascunho anterior (5 obras, foco em medição) ficou guardado em "PLANO-DO-PROJETO (rascunho anterior - 5 obras).md".
 
 ## Em uma frase
@@ -36,7 +36,7 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 
 **O que ele NÃO faz (v1):**
 - Orçamento, composição de preço, SINAPI (você já resolve isso)
-- Recalcular o caminho crítico sozinho: o cronograma vem do MS Project (importado), o app não substitui o Project na hora de planejar
+- Recalcular o caminho crítico sozinho: o cronograma das frentes vem do MS Project (importado). O módulo Planejamento (21/10) planeja as atividades por baixo das frentes, mas não calcula caminho crítico nem mexe na folga das frentes
 - Contas a pagar / financeiro completo (só valor contratado × medido)
 - App nativo de loja (é site que abre no celular e "instala" na tela inicial)
 - Empreiteiro entrando no app
@@ -97,6 +97,35 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 - **Mostra:** data de entrega · % de avanço por ambiente (sala, cozinha, suíte master…) · fotos da semana
 - **Ações:** só ver
 
+### Materiais — Kanban de pedidos (engenheiro e mestre; arquiteta só vê) — acrescentado em 20/10
+- **Conceito:** não é estoque item a item. Cada cartão é um **pedido** (ex.: "50 sacos de cimento" para a frente Pintura fachada) que anda por 5 colunas: **Solicitar → Em cotação → A caminho → No almoxarifado → Entregue**.
+- **Abre em:** o quadro da obra escolhida, sem a coluna Entregue (o filtro "ver entregues" mostra).
+- **Mostra:** contadores no topo (em cotação · chegam em 7 dias · atrasados) · em cada cartão: material + quantidade, frente, etiqueta (vermelha = crítico; azul = material grosso; verde = acabamento/instalações), fornecedor e previsão, "há X dias nesta coluna" e o **lead time** (dias entre Solicitar e No almoxarifado).
+- **Atrasado:** previsão de entrega vencida e o pedido ainda "A caminho" → cartão vermelho com a etiqueta "Atrasado".
+- **Ações:** novo pedido em menos de 30 s (material do catálogo, quantidade, frente, prioridade; entra em Solicitar) · mover por botões, sem arrastar: avançar uma coluna ou voltar uma.
+  - para **A caminho**: fornecedor e previsão de entrega obrigatórios;
+  - para **No almoxarifado**: checklist de recebimento — quantidade bate com a NF? (sim/não), material em perfeito estado? (sim/não), avarias (opcional), foto da NF (opcional). Um "não" marca o cartão com alerta;
+  - para **Entregue**: confirmar a frente onde o material foi aplicado.
+- **Toda mudança de coluna fica no histórico** (coluna + data + quem); é dele que saem o tempo na coluna e o lead time.
+- **Sem valor em R$** nesta versão. Se o preço entrar, vai para tabela separada (como `contratos`), para o mestre e a arquiteta não verem.
+- **Catálogo de materiais:** da empresa, vale para todas as obras (nome, unidade, categoria Grosso / Acabamento / Instalações). Na v1 vem pronto; o cadastro do catálogo fica para depois.
+- **Vazio:** "Nenhum pedido de material nesta obra. Faça o primeiro."
+- **Estoque (opcional, acrescentado em 20/10):** aba "Estoque" dentro de Materiais. Cada **insumo** é um material do catálogo naquela obra, com saldo e saldo mínimo.
+  - **Entrada automática:** pedido que chega a No almoxarifado com o checklist todo "sim" gera uma entrada com a quantidade do pedido (cria o insumo se ainda não existir, com mínimo 0). Um pedido gera no máximo uma entrada, mesmo se voltar de coluna e for recebido de novo. Recebido com problema não entra sozinho.
+  - **Baixa de estoque (saída manual):** insumo, quantidade, frente e data (nasce com hoje). O saldo nunca fica negativo: baixa maior que o saldo é recusada com aviso.
+  - **Mostra:** tabela insumo · saldo · mínimo · situação (etiqueta vermelha "Crítico" quando saldo ≤ mínimo), busca e filtro "só críticos"; tocar no insumo abre o histórico de movimentos. Contador "Insumos críticos" ao lado dos três do quadro.
+  - Quem faz baixa: engenheiro e mestre. Arquiteta só vê. Cliente não vê.
+
+### Planejamento — Last Planner em 3 horizontes + EAP (engenheiro; mestre só o Curto prazo; arquiteta só vê) — acrescentado em 21/10
+- **Conceito:** a frente continua sendo o serviço contratado que vem do MS Project, com folga. O Planejamento quebra a obra em **atividades** (mais finas que a frente), cada uma podendo ser **ligada a uma frente**. Uma lista só de atividades por obra; as 4 abas leem e mudam a mesma lista. Ciclo de uso: EAP → Longo prazo → Médio prazo → Curto prazo.
+- **Calendário da obra:** dias de trabalho (padrão segunda a sábado) e feriados, por obra. Durações e prazos do Planejamento são em **dias úteis** desse calendário. A regra da folga (Frentes em risco) continua segunda a sábado, sem feriados.
+- **Aba EAP (a base):** árvore com código automático (1, 1.1, 1.2.1…) pela ordem dentro de cada nível. Criar (título, início, fim, "dentro de" outra atividade ou no nível principal, frente ligada opcional), editar, adicionar subatividade, subir/descer na ordem, arquivar/desarquivar. Atividade com subatividades é um **grupo**: início, fim e % saem das subatividades. Arquivar um grupo arquiva as subatividades junto (pede confirmação); desarquivar devolve a atividade, as subatividades e os grupos acima. Arquivada some da árvore e do código; o filtro "mostrar arquivadas" mostra.
+- **Aba Longo prazo (cronograma):** barras em CSS por semana ou por mês, com início, fim e % realizado × % previsto (o previsto é a fração dos dias úteis já passados). No celular vira lista: código, título, datas, progresso. Linha de base fica para depois.
+- **Aba Médio prazo (lookahead, 3 a 6 semanas):** quadro com uma coluna por semana, com as **restrições** (impedimentos) das atividades. Restrição: descrição, tipo, atividade, prazo de resolução (nasce com hoje), responsável. Tipos com cor e ícone: Material, Mão de obra, Método, Equipamento, Projeto, Segurança, Logística. Marcar resolvida; mover de semana por botões (semana anterior / próxima). Filtros: nº de semanas, responsável, mostrar resolvidas.
+- **Aba Curto prazo (semana, Kanban + PPC):** colunas A fazer · Em andamento · Concluído, mover por botões. Subtarefas (checklist) dentro de cada atividade. Marcar atividade ou subtarefa como **Não realizado** exige a causa, com os **mesmos motivos do diário** (Falta material, Falta gente, Aguardando projeto, Aguardando outra frente, Chuva, Outro). Entra na semana a atividade cujo período cruza a semana **ou** que deveria ter terminado e não terminou (acumulada). **PPC** = concluídas ÷ planejadas da semana × 100: número grande, barra e "X de Y concluídas". Navegar entre semanas.
+- **Quem:** engenheiro faz tudo; mestre vê e mexe só no Curto prazo (move cartão, inclui e marca subtarefa, informa causa); arquiteta vê as 4 abas sem mexer; cliente não vê. No celular do mestre, Materiais e Planejamento ficam dentro de "Mais" (a barra só cabe 5).
+- **Vazio:** "Esta obra ainda não tem atividades planejadas. Monte a EAP pela primeira atividade."
+
 ## Unidade principal
 
 **Obra** — vai existir mais de uma? **sim** — o Davidson toca várias ao mesmo tempo (a de alto padrão descrita aqui é uma delas). Seletor de obra no topo de todas as telas; os dados de uma obra **nunca** aparecem misturados com os de outra, nem nas listas, nem na medição, nem nas fotos. Alguém trabalha em mais de uma ao mesmo tempo? **[AINDA NÃO RESPONDIDO — proposta: sim, o engenheiro e a arquiteta]**. Cada pessoa só enxerga as obras às quais foi vinculada.
@@ -124,6 +153,11 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 | Fechar pendência | sim | não | não | não |
 | Medição (segunda entrega) | sim | não | não | não |
 | Criar/editar obra e frente, importar cronograma | sim | não | não | não |
+| Materiais: ver o quadro de pedidos | sim | sim | sim | não |
+| Materiais: fazer e mover pedido, dar baixa no estoque | sim | sim | não | não |
+| Planejamento: ver EAP, Longo e Médio prazo | sim | não | sim | não |
+| Planejamento: montar EAP, restrições, calendário | sim | não | não | não |
+| Planejamento: ver e mexer no Curto prazo (Kanban, subtarefas, causa) | sim | sim | só vê | não |
 | Apagar qualquer coisa | sim | não | não | não |
 | Gerenciar usuários | sim | não | não | não |
 | **Quem não fez login** | não vê nada | | | |
@@ -195,12 +229,15 @@ Login / Criar conta / Aguardando liberação
     ├── Diário  →  Diário do dia
     ├── Pendências de projeto  →  Detalhe da pendência
     ├── Fotos
+    ├── Materiais (pedidos)
+    ├── Planejamento: EAP · Longo prazo · Médio prazo · Curto prazo
     └── Cadastros: Obras · Frentes e cronograma · Empreiteiros · Ambientes · Equipe
 └── Mestre (seletor de obra no topo)
     ├── Diário do dia  (início)
     ├── Frentes  →  Detalhe da frente (sem valores)
     ├── Pendências de projeto
-    └── Fotos
+    ├── Fotos
+    └── Mais: Materiais · Planejamento (só o Curto prazo)
 └── Arquiteta (seletor de obra no topo)
     ├── Pendências de projeto  (início)
     ├── Frentes  →  Detalhe da frente (sem valores)
@@ -245,6 +282,17 @@ Avisos automáticos (lembrete de diário não lançado, resumo de segunda por em
 | fotos | as fotos, ligadas a frente e ambiente |
 | pendencias | as pendências de projeto |
 | comentarios | a conversa de cada pendência e os comentários/decisões no detalhe da frente |
+| materiais | o catálogo de materiais da empresa (vale para todas as obras) |
+| pedidos | cada pedido de material da obra, a coluna em que está e o recebimento |
+| pedido_historico | cada mudança de coluna de um pedido (de onde saem o tempo na coluna e o lead time) |
+| insumos | o saldo de cada material do catálogo numa obra, com o saldo mínimo |
+| movimentos | cada entrada (do pedido recebido) e saída (baixa) de um insumo |
+| calendarios | os dias de trabalho de cada obra (Planejamento) |
+| feriados | os feriados de cada obra (Planejamento) |
+| atividades | a EAP: cada atividade, com pai, ordem, datas, %, frente ligada e coluna do Kanban |
+| restricoes | os impedimentos das atividades no Médio prazo |
+| subtarefas | o checklist de cada atividade no Curto prazo |
+| nao_realizados | a atividade planejada na semana que não foi concluída, com a causa |
 
 Na segunda entrega entram mais duas: `medicoes` (a medição de um empreiteiro num período) e `medicao_itens` (o valor medido de cada frente naquela medição).
 
@@ -265,7 +313,7 @@ Na segunda entrega entram mais duas: `medicoes` (a medição de um empreiteiro n
 
 ## Tamanho da v1
 
-12 telas · 13 tabelas · 2 processos · 4 perfis. A Medição (1 tela, 2 tabelas) foi para a segunda entrega por decisão do Davidson em 20/10. Mesmo assim a v1 passa da régua do método (mais de 7 tabelas); o resto é o mínimo para separar obras, esconder dinheiro e calcular a folga, então fica.
+14 telas · 24 tabelas · 3 processos · 4 perfis (Materiais acrescentado em 20/10: 1 tela com a aba Estoque, 5 tabelas, a entrada automática no estoque. Planejamento acrescentado em 21/10: 1 tela com 4 abas, 6 tabelas). A Medição (1 tela, 2 tabelas) foi para a segunda entrega por decisão do Davidson em 20/10. Mesmo assim a v1 passa da régua do método (mais de 7 tabelas); o resto é o mínimo para separar obras, esconder dinheiro e calcular a folga, então fica.
 
 ---
 

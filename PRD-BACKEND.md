@@ -280,6 +280,196 @@ Para que serve: a conversa das pendências e os comentários/decisões no detalh
 
 ---
 
+## Tabela `materiais`
+
+Para que serve: o catálogo de materiais da empresa. **Não tem `obra_id`**: é cadastro, vale para todas as obras (como o logo). Não guarda lançamento nenhum.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| nome | text | sim | |
+| unidade | text | sim | ex.: saco 50 kg, m³, rolo |
+| categoria | text | sim | CHECK: `Grosso`, `Acabamento`, `Instalações` |
+
+---
+
+## Tabela `pedidos`
+
+Para que serve: cada pedido de material de uma obra e a coluna em que ele está.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| material_id | uuid | sim | → materiais |
+| quantidade | numeric | sim | CHECK > 0 |
+| frente_id | uuid | sim | → frentes (da mesma obra); na entrega, a frente de aplicação |
+| prioridade | text | sim | CHECK: `Normal`, `Crítico`; padrão `Normal` |
+| status | text | sim | CHECK: `Solicitar`, `Em cotação`, `A caminho`, `No almoxarifado`, `Entregue`; padrão `Solicitar` |
+| fornecedor | text | não | obrigatório a partir de `A caminho` |
+| previsao_entrega | date | não | obrigatória a partir de `A caminho` |
+| qtd_bate_nf | boolean | não | checklist de recebimento |
+| estado_ok | boolean | não | checklist de recebimento |
+| avarias | text | não | |
+| foto_nf | text | não | caminho no Storage |
+| criado_por | uuid | sim | → profiles |
+| created_at | timestamptz | sim | automático |
+
+Sem valor em R$. Se o preço entrar, vai para tabela separada (regra de `contratos`).
+
+---
+
+## Tabela `pedido_historico`
+
+Para que serve: cada mudança de coluna de um pedido. É dela que saem "há X dias nesta coluna" e o lead time (Solicitar → No almoxarifado).
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| pedido_id | uuid | sim | → pedidos |
+| status | text | sim | mesmo CHECK de `pedidos.status` |
+| data | date | sim | |
+| autor_id | uuid | sim | → profiles |
+
+**Índices úteis:** (pedido_id, data).
+
+---
+
+## Tabela `insumos`
+
+Para que serve: o saldo de um material do catálogo numa obra (estoque opcional).
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| material_id | uuid | sim | → materiais; único por obra (obra_id, material_id) |
+| saldo | numeric | sim | CHECK ≥ 0; padrão 0; muda só por movimento |
+| unidade | text | sim | copiada do material |
+| saldo_minimo | numeric | sim | CHECK ≥ 0; padrão 0 |
+
+---
+
+## Tabela `movimentos`
+
+Para que serve: cada entrada e saída de um insumo. O saldo do insumo é a soma destes.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| insumo_id | uuid | sim | → insumos |
+| tipo | text | sim | CHECK: `Entrada`, `Saída` |
+| quantidade | numeric | sim | CHECK > 0 |
+| data | date | sim | |
+| frente_id | uuid | não | obrigatória na saída |
+| origem | text | sim | CHECK: `Pedido`, `Manual` |
+| pedido_id | uuid | não | → pedidos; único quando preenchido (um pedido gera no máximo uma entrada) |
+| autor_id | uuid | sim | → profiles |
+
+**Índices úteis:** (obra_id, insumo_id, data).
+
+**Processo automático:** pedido que passa para `No almoxarifado` com `qtd_bate_nf` e `estado_ok` verdadeiros gera uma `Entrada` (origem `Pedido`) e soma no saldo; cria o insumo se não existir. Saída que deixaria o saldo negativo é recusada (o CHECK do saldo segura no banco).
+
+---
+
+## Tabela `calendarios` (Planejamento)
+
+Para que serve: os dias de trabalho de cada obra. Durações e prazos do Planejamento são contados nestes dias, menos os feriados. Não muda a regra da folga das frentes (segunda a sábado).
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | único (uma linha por obra) |
+| dias_semana | int[] | sim | 0 = domingo … 6 = sábado; padrão {1,2,3,4,5,6}; CHECK pelo menos um dia, valores de 0 a 6 |
+
+Obra sem linha aqui usa o padrão (segunda a sábado).
+
+---
+
+## Tabela `feriados` (Planejamento)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| data | date | sim | único por obra (obra_id, data) |
+| nome | text | sim | ex.: "Finados" |
+
+---
+
+## Tabela `atividades` (Planejamento)
+
+Para que serve: a EAP da obra. Uma lista só, lida pelas 4 abas do Planejamento.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| pai_id | uuid | não | → atividades da **mesma obra**; vazio = nível principal; não pode ser ela mesma nem uma descendente |
+| ordem | int | sim | posição entre as irmãs; o código (1.2.1) sai daqui, não é coluna |
+| titulo | text | sim | |
+| inicio | date | sim | |
+| fim | date | sim | CHECK fim ≥ inicio |
+| frente_id | uuid | não | → frentes da mesma obra |
+| progresso | int | sim | % realizado; CHECK de 0 a 100; padrão 0 |
+| status | text | sim | coluna do Kanban; CHECK: `A fazer`, `Em andamento`, `Concluído`; padrão `A fazer` |
+| concluida_em | date | não | gravada ao ir para `Concluído` (e o progresso vai a 100); limpa ao sair. É dela que sai o PPC de cada semana |
+| arquivada | boolean | sim | padrão falso |
+| criado_por | uuid | sim | → profiles |
+
+Grupo (atividade com subatividades não arquivadas): início, fim e progresso mostrados saem das subatividades; os gravados nele valem só se ele voltar a ficar sem filhas.
+**Índices úteis:** (obra_id, pai_id, ordem).
+
+---
+
+## Tabela `restricoes` (Planejamento — Médio prazo)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| atividade_id | uuid | sim | → atividades da mesma obra |
+| descricao | text | sim | |
+| tipo | text | sim | CHECK: `Material`, `Mão de obra`, `Método`, `Equipamento`, `Projeto`, `Segurança`, `Logística` |
+| prazo | date | sim | prazo de resolução; define a semana do quadro |
+| responsavel | text | sim | |
+| resolvida_em | date | não | vazio = aberta |
+
+---
+
+## Tabela `subtarefas` (Planejamento — Curto prazo)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| atividade_id | uuid | sim | → atividades da mesma obra |
+| titulo | text | sim | |
+| situacao | text | sim | CHECK: `Pendente`, `Feita`, `Não realizado`; padrão `Pendente` |
+| causa | text | não | obrigatória quando `Não realizado`; CHECK com os motivos de `apontamentos.motivo` |
+| causa_detalhe | text | não | obrigatório quando causa = `Outro` |
+
+---
+
+## Tabela `nao_realizados` (Planejamento — Curto prazo)
+
+Para que serve: a atividade planejada numa semana que não foi concluída, com a causa. É o que alimenta "por que o plano falhou".
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | |
+| atividade_id | uuid | sim | → atividades da mesma obra |
+| semana | date | sim | a segunda-feira da semana; único (atividade_id, semana) |
+| causa | text | sim | CHECK com os motivos de `apontamentos.motivo` |
+| causa_detalhe | text | não | obrigatório quando causa = `Outro` |
+| autor_id | uuid | sim | → profiles |
+
+Concluir a atividade apaga o "não realizado" da semana em que foi concluída.
+
+---
 
 ## Permissões
 
@@ -343,6 +533,19 @@ Escrito em português. Vira RLS na hora de construir. Regra geral: **toda** leit
 - **Criar:** engenheiro, mestre e arquiteta.
 - **Editar:** o próprio autor, até 24 horas depois.
 - **Apagar:** engenheiro.
+
+### `materiais`, `pedidos` e `pedido_historico`
+- **Catálogo (`materiais`):** ler, qualquer logado não pendente; criar/editar, engenheiro.
+- **Ver pedidos e histórico:** engenheiro, mestre e arquiteta membros da obra. Cliente: não.
+- **Criar e mover pedido** (e gravar o histórico): engenheiro e mestre membros da obra.
+- **Estoque (`insumos`, `movimentos`):** ver, engenheiro, mestre e arquiteta membros da obra; dar baixa, engenheiro e mestre. Cliente: não.
+- **Apagar:** engenheiro.
+
+### Planejamento (`calendarios`, `feriados`, `atividades`, `restricoes`, `subtarefas`)
+- **Ver:** engenheiro e arquiteta membros da obra, tudo; mestre membro da obra, só o que o Curto prazo usa (atividades da semana e subtarefas). Cliente: não.
+- **Criar e editar EAP, restrições e calendário:** engenheiro.
+- **Mover atividade no Kanban, marcar subtarefa, informar causa:** engenheiro e mestre membros da obra.
+- **Apagar:** engenheiro (atividade não se apaga: arquiva).
 
 ### Avanço por ambiente (para o cliente)
 - O cliente não lê `frentes` nem `frente_ambientes`. Ele recebe, por uma consulta pronta do banco que só devolve dados da obra dele, a lista: ambiente · ordem · % de avanço (frente_ambientes concluídos ÷ total, naquele ambiente; todos os serviços com o mesmo peso).

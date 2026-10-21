@@ -2,6 +2,7 @@
 // Duas obras, de propósito diferentes: a Casa Jardins tem 1 frente e nenhuma
 // pendência. É assim que filtro esquecido aparece hoje, e não na obra real.
 // Na Etapa 7 estes dados viram o seed do banco.
+import { STATUS_PEDIDO } from './materiais.js'
 
 export const mockObras = [
   {
@@ -113,13 +114,32 @@ const DIAS_O2 = ['2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-1
 const OCORRENCIAS = {
   '2026-10-13': 'Equipe da ImperTec veio sem material. Foram embora às 10h.',
   '2026-10-14': 'Chuva desde a madrugada. Fachada parada.',
+  '2026-10-16': 'Gesso & Cia dispensado: segue sem a altura do nicho do box (pendência de 15/10).',
   '2026-10-19': 'Manta asfáltica não chegou. Fornecedor prometeu para quarta.',
 }
 
+// Clima fora do padrão "Sol" da obra 1. A chuva bate com o motivo da fachada parada.
+const CLIMA_O1 = {
+  '2026-10-13': 'Nublado', '2026-10-14': 'Chuva', '2026-10-15': 'Chuva',
+  '2026-10-16': 'Chuva', '2026-10-17': 'Chuva', '2026-10-19': 'Nublado',
+}
+
+// Pessoas por empreiteiro nos últimos dias da obra 1. Só aparece quem estava na
+// obra: quem "não andou" por falta de gente ou aguardando projeto não veio.
+const EQUIPES_O1 = {
+  '2026-10-13': { e1: 4, e2: 3, e3: 3, e4: 2, e6: 3 },
+  '2026-10-14': { e1: 4, e3: 3, e4: 2 },
+  '2026-10-15': { e1: 3, e4: 2 },
+  '2026-10-16': { e1: 3 },
+  '2026-10-17': { e1: 2 },
+  '2026-10-19': { e1: 4, e4: 3, e6: 4 },
+}
+const equipesDe = (data) => Object.entries(EQUIPES_O1[data] || {}).map(([empreiteiro_id, pessoas]) => ({ empreiteiro_id, pessoas }))
+
 export const mockDiarios = [
   ...DIAS_O1.map((data) => ({
-    id: `d1-${data}`, obra_id: 'o1', data, clima: ['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17'].includes(data) ? 'Chuva' : 'Sol',
-    equipes: [], ocorrencias: OCORRENCIAS[data] || '', autor_id: 'u2',
+    id: `d1-${data}`, obra_id: 'o1', data, clima: CLIMA_O1[data] || 'Sol',
+    equipes: equipesDe(data), ocorrencias: OCORRENCIAS[data] || '', autor_id: 'u2',
   })),
   ...DIAS_O2.map((data) => ({
     id: `d2-${data}`, obra_id: 'o2', data, clima: 'Sol', equipes: [], ocorrencias: '', autor_id: 'u1',
@@ -179,4 +199,175 @@ export const mockComentarios = [
   { id: 'cm2', obra_id: 'o1', pendencia_id: 'pd2', frente_id: null, texto: 'Muda sim: 40 cm para a esquerda, conforme prancha E-03 rev. 2.', autor_id: 'u3', created_at: '2026-10-10T11:30:00' },
   { id: 'cm3', obra_id: 'o1', pendencia_id: 'pd3', frente_id: null, texto: 'Paginação a 45°, começando pela porta da varanda.', autor_id: 'u3', created_at: '2026-09-27T15:00:00' },
   { id: 'cm4', obra_id: 'o1', pendencia_id: null, frente_id: 'f1', texto: 'Liguei para a ImperTec: o pedido de manta foi feito atrasado. Cobrar nova data até segunda.', autor_id: 'u1', created_at: '2026-10-17T17:40:00' },
+]
+
+// ── Materiais (Kanban de pedidos) ──────────────────────────────────────────
+// Catálogo da empresa: sem obra_id, vale para todas as obras.
+export const mockMateriais = [
+  { id: 'mt1', nome: 'Cimento CP-II', unidade: 'saco 50 kg', categoria: 'Grosso' },
+  { id: 'mt2', nome: 'Areia média', unidade: 'm³', categoria: 'Grosso' },
+  { id: 'mt3', nome: 'Brita 1', unidade: 'm³', categoria: 'Grosso' },
+  { id: 'mt4', nome: 'Bloco cerâmico 14×19×29', unidade: 'milheiro', categoria: 'Grosso' },
+  { id: 'mt5', nome: 'Manta asfáltica 4 mm', unidade: 'rolo', categoria: 'Grosso' },
+  { id: 'mt6', nome: 'Argamassa AC-III', unidade: 'saco 20 kg', categoria: 'Acabamento' },
+  { id: 'mt7', nome: 'Porcelanato 90×90 polido', unidade: 'm²', categoria: 'Acabamento' },
+  { id: 'mt8', nome: 'Rejunte epóxi', unidade: 'kg', categoria: 'Acabamento' },
+  { id: 'mt9', nome: 'Chapa de gesso acartonado ST', unidade: 'chapa', categoria: 'Acabamento' },
+  { id: 'mt10', nome: 'Tinta acrílica fosca', unidade: 'lata 18 L', categoria: 'Acabamento' },
+  { id: 'mt11', nome: 'Tubo PVC soldável 25 mm', unidade: 'barra 6 m', categoria: 'Instalações' },
+  { id: 'mt12', nome: 'Cabo flexível 2,5 mm²', unidade: 'rolo 100 m', categoria: 'Instalações' },
+]
+
+// Obra 1: 10 pedidos nas 5 colunas (2 já entregues), 2 críticos, 1 ATRASADO (manta, previsão 16/10
+// e ainda a caminho — é ela que parou a impermeabilização) e 1 recebido com problema.
+// Obra 2: só 2, para trocar de obra e ver o quadro mudar inteiro.
+const pedido = (id, obra_id, material_id, quantidade, frente_id, prioridade, status, extra = {}) => ({
+  id, obra_id, material_id, quantidade, frente_id, prioridade, status,
+  fornecedor: '', previsao_entrega: '', qtd_bate_nf: null, estado_ok: null, avarias: '', foto_nf: '',
+  criado_por: obra_id === 'o1' ? 'u2' : 'u1', ...extra,
+})
+export const mockPedidos = [
+  pedido('pm1', 'o1', 'mt5', 30, 'f1', 'Crítico', 'A caminho', { fornecedor: 'Casa da Impermeabilização', previsao_entrega: '2026-10-16' }),
+  pedido('pm2', 'o1', 'mt9', 120, 'f2', 'Normal', 'Em cotação'),
+  pedido('pm3', 'o1', 'mt11', 40, 'f3', 'Normal', 'No almoxarifado', { fornecedor: 'Hidráulica Central', previsao_entrega: '2026-10-15', qtd_bate_nf: true, estado_ok: true }),
+  pedido('pm4', 'o1', 'mt12', 6, 'f4', 'Normal', 'A caminho', { fornecedor: 'Elétrica Total', previsao_entrega: '2026-10-23' }),
+  pedido('pm5', 'o1', 'mt7', 85, 'f6', 'Crítico', 'Solicitar'),
+  pedido('pm6', 'o1', 'mt10', 12, 'f10', 'Normal', 'Solicitar'),
+  pedido('pm7', 'o1', 'mt6', 60, 'f6', 'Normal', 'No almoxarifado', { fornecedor: 'Depósito São Jorge', previsao_entrega: '2026-10-08', qtd_bate_nf: false, estado_ok: true, avarias: 'Vieram 56 sacos; a NF diz 60.' }),
+  pedido('pm8', 'o1', 'mt8', 20, 'f6', 'Normal', 'Em cotação'),
+  pedido('pm9', 'o1', 'mt1', 50, 'f10', 'Normal', 'Entregue', { fornecedor: 'Depósito São Jorge', previsao_entrega: '2026-10-02', qtd_bate_nf: true, estado_ok: true }),
+  pedido('pm12', 'o1', 'mt4', 6, 'f7', 'Normal', 'Entregue', { fornecedor: 'Cerâmica Paraíso', previsao_entrega: '2026-08-11', qtd_bate_nf: true, estado_ok: true }),
+  pedido('pm10', 'o2', 'mt1', 80, 'f11', 'Crítico', 'Em cotação'),
+  pedido('pm11', 'o2', 'mt3', 6, 'f11', 'Normal', 'Solicitar'),
+]
+
+// Cada mudança de coluna. O autor é quem moveu (mestre na obra 1, engenheiro na 2).
+const HIST = {
+  pm1: ['2026-10-08', '2026-10-09', '2026-10-13'],
+  pm2: ['2026-10-14', '2026-10-15'],
+  pm3: ['2026-10-02', '2026-10-05', '2026-10-07', '2026-10-15'],
+  pm4: ['2026-10-10', '2026-10-13', '2026-10-16'],
+  pm5: ['2026-10-19'],
+  pm6: ['2026-10-20'],
+  pm7: ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-09'],
+  pm8: ['2026-10-16', '2026-10-17'],
+  pm9: ['2026-09-28', '2026-09-29', '2026-10-01', '2026-10-03', '2026-10-06'],
+  pm12: ['2026-08-03', '2026-08-04', '2026-08-06', '2026-08-11', '2026-08-12'],
+  pm10: ['2026-10-14', '2026-10-16'],
+  pm11: ['2026-10-19'],
+}
+export const mockPedidoHistorico = mockPedidos.flatMap((p) => HIST[p.id].map((data, i) => ({
+  id: `ph-${p.id}-${i}`, obra_id: p.obra_id, pedido_id: p.id, status: STATUS_PEDIDO[i], data, autor_id: p.criado_por,
+})))
+
+// ── Estoque (opcional) do módulo Materiais ─────────────────────────────────
+// Obra 1: os 3 pedidos recebidos com checklist OK viraram entrada (tubo PVC,
+// cimento, bloco); a argamassa veio com problema e não entrou sozinha.
+// 2 insumos críticos (saldo ≤ mínimo): cimento e bloco.
+// Obra 2: só a areia, com saldo inicial lançado à mão.
+// O saldo de cada insumo é a soma dos movimentos dele (o teste confere).
+export const mockInsumos = [
+  { id: 'in1', obra_id: 'o1', material_id: 'mt1', saldo: 10, unidade: 'saco 50 kg', saldo_minimo: 15 },
+  { id: 'in2', obra_id: 'o1', material_id: 'mt11', saldo: 12, unidade: 'barra 6 m', saldo_minimo: 10 },
+  { id: 'in3', obra_id: 'o1', material_id: 'mt4', saldo: 1, unidade: 'milheiro', saldo_minimo: 1 },
+  { id: 'in4', obra_id: 'o2', material_id: 'mt2', saldo: 5, unidade: 'm³', saldo_minimo: 4 },
+]
+
+const mov = (id, obra_id, insumo_id, tipo, quantidade, data, frente_id, origem, pedido_id = null) => ({
+  id, obra_id, insumo_id, tipo, quantidade, data, frente_id, origem, pedido_id, autor_id: obra_id === 'o1' ? 'u2' : 'u1',
+})
+export const mockMovimentos = [
+  mov('mv1', 'o1', 'in3', 'Entrada', 6, '2026-08-12', 'f7', 'Pedido', 'pm12'),
+  mov('mv2', 'o1', 'in3', 'Saída', 3, '2026-08-14', 'f7', 'Manual'),
+  mov('mv3', 'o1', 'in3', 'Saída', 2, '2026-08-25', 'f7', 'Manual'),
+  mov('mv4', 'o1', 'in1', 'Entrada', 50, '2026-10-03', 'f10', 'Pedido', 'pm9'),
+  mov('mv5', 'o1', 'in1', 'Saída', 20, '2026-10-06', 'f10', 'Manual'),
+  mov('mv6', 'o1', 'in1', 'Saída', 15, '2026-10-13', 'f10', 'Manual'),
+  mov('mv7', 'o1', 'in1', 'Saída', 5, '2026-10-17', 'f6', 'Manual'),
+  mov('mv8', 'o1', 'in2', 'Entrada', 40, '2026-10-15', 'f3', 'Pedido', 'pm3'),
+  mov('mv9', 'o1', 'in2', 'Saída', 18, '2026-10-16', 'f3', 'Manual'),
+  mov('mv10', 'o1', 'in2', 'Saída', 10, '2026-10-19', 'f3', 'Manual'),
+  mov('mv11', 'o2', 'in4', 'Entrada', 8, '2026-10-01', null, 'Manual'),
+  mov('mv12', 'o2', 'in4', 'Saída', 3, '2026-10-14', 'f11', 'Manual'),
+]
+
+// ── Planejamento (Last Planner + EAP) ──────────────────────────────────────
+// Obra 1: calendário seg–sáb com 3 feriados; EAP com 3 níveis (2.4.1), 2 grupos,
+// atividades ligadas às frentes e 1 arquivada. Obra 2: sem calendário gravado
+// (usa o padrão), nenhum feriado e só 2 atividades.
+export const mockCalendarios = [
+  { id: 'cal1', obra_id: 'o1', dias_semana: [1, 2, 3, 4, 5, 6] },
+]
+
+export const mockFeriados = [
+  { id: 'fe1', obra_id: 'o1', data: '2026-11-02', nome: 'Finados' },
+  { id: 'fe2', obra_id: 'o1', data: '2026-11-20', nome: 'Consciência Negra' },
+  { id: 'fe3', obra_id: 'o1', data: '2026-12-25', nome: 'Natal' },
+]
+
+const at = (id, obra_id, pai_id, ordem, titulo, inicio, fim, frente_id, progresso, status, arquivada = false) => ({
+  id, obra_id, pai_id, ordem, titulo, inicio, fim, frente_id, progresso, status, arquivada, criado_por: 'u1',
+  concluida_em: status === 'Concluído' ? fim : null, // as concluídas do exemplo terminaram no dia previsto
+})
+export const mockAtividades = [
+  at('at1', 'o1', null, 1, 'Alvenaria de vedação', '2026-08-03', '2026-09-18', 'f7', 100, 'Concluído'),
+  at('at2', 'o1', null, 2, 'Instalações', '2026-09-15', '2026-10-30', null, 0, 'A fazer'),
+  at('at3', 'o1', 'at2', 1, 'Instalações hidráulicas', '2026-09-15', '2026-10-24', 'f3', 80, 'Em andamento'),
+  at('at4', 'o1', 'at2', 2, 'Elétrica — passagem de fios', '2026-09-22', '2026-10-30', 'f4', 55, 'Em andamento'),
+  at('at5', 'o1', null, 3, 'Acabamento', '2026-09-29', '2026-11-07', null, 0, 'A fazer'),
+  at('at6', 'o1', 'at5', 1, 'Impermeabilização áreas molhadas', '2026-10-01', '2026-10-25', 'f1', 30, 'Em andamento'),
+  at('at7', 'o1', 'at5', 2, 'Revestimento suíte master', '2026-09-29', '2026-10-17', 'f6', 70, 'Em andamento'),
+  at('at8', 'o1', 'at5', 3, 'Forro de gesso', '2026-10-06', '2026-10-31', 'f2', 40, 'Em andamento'),
+  at('at9', 'o1', 'at5', 4, 'Bancadas de mármore', '2026-10-13', '2026-11-07', 'f5', 0, 'A fazer'),
+  at('at10', 'o1', 'at9', 1, 'Bancada da cozinha', '2026-10-13', '2026-10-28', 'f5', 0, 'A fazer'),
+  at('at11', 'o1', 'at9', 2, 'Bancadas dos banheiros', '2026-10-26', '2026-11-07', 'f5', 0, 'A fazer'),
+  at('at12', 'o1', null, 4, 'Pintura da fachada', '2026-10-01', '2026-10-30', 'f10', 45, 'Em andamento'),
+  at('at13', 'o1', null, 5, 'Demolição do muro antigo', '2026-03-02', '2026-03-14', null, 100, 'Concluído', true),
+  at('at20', 'o2', null, 1, 'Fundação', '2026-10-01', '2026-11-15', null, 0, 'A fazer'),
+  at('at21', 'o2', 'at20', 1, 'Estacas e blocos', '2026-10-01', '2026-11-15', 'f11', 35, 'Em andamento'),
+]
+
+// Médio prazo (lookahead). Hoje = 20/10 (semana de 19/10). Obra 1: um de cada
+// tipo, 1 vencida (manta, prazo 17/10), 1 resolvida e 2 além de 4 semanas
+// (mármore em 16/11 e o 2º lote de manta em 30/11). Prontas na janela de 4 semanas: 2 de 8
+// (hidráulica e revestimento). Obra 2: uma só.
+const rs = (id, obra_id, atividade_id, tipo, descricao, prazo, responsavel, resolvida_em = null) => ({
+  id, obra_id, atividade_id, tipo, descricao, prazo, responsavel, resolvida_em,
+})
+export const mockRestricoes = [
+  rs('rs1', 'o1', 'at8', 'Projeto', 'Detalhe do forro da sala (luminotécnica)', '2026-10-22', 'Carla'),
+  rs('rs2', 'o1', 'at6', 'Material', 'Manta asfáltica em falta no fornecedor', '2026-10-17', 'Davidson'),
+  rs('rs3', 'o1', 'at10', 'Método', 'Gabarito da bancada depende da marcenaria', '2026-10-27', 'Pedras Nobres'),
+  rs('rs4', 'o1', 'at11', 'Equipamento', 'Içamento das pedras para o 2º pavimento', '2026-11-03', 'Pedras Nobres'),
+  rs('rs5', 'o1', 'at4', 'Mão de obra', 'Equipe reduzida: faltam 2 eletricistas', '2026-10-23', 'Elétrica Ramos'),
+  rs('rs6', 'o1', 'at12', 'Segurança', 'Andaime sem guarda-corpo no 3º nível', '2026-10-21', 'Seu Raimundo'),
+  rs('rs7', 'o1', 'at11', 'Logística', 'Entrega do mármore só pela manhã (rua estreita)', '2026-11-16', 'Davidson'),
+  rs('rs8', 'o1', 'at3', 'Material', 'Registros de pressão do banho social', '2026-10-24', 'Hidro Sul', '2026-10-19'),
+  rs('rs9', 'o1', 'at6', 'Material', 'Segundo lote de manta para a área gourmet', '2026-11-30', 'Davidson'),
+  rs('rs20', 'o2', 'at21', 'Projeto', 'Laudo da sondagem complementar', '2026-10-30', 'Davidson'),
+]
+
+// Curto prazo. Subtarefas (checklist) de 3 atividades da obra 1 e 1 da obra 2.
+// Na semana passada (12 a 18/10) a impermeabilização e o forro não foram
+// realizados, com as mesmas causas do diário daquela semana.
+const st = (id, obra_id, atividade_id, titulo, situacao = 'Pendente', causa = null) => ({
+  id, obra_id, atividade_id, titulo, situacao, causa, causa_detalhe: null,
+})
+export const mockSubtarefas = [
+  st('st1', 'o1', 'at6', 'Limpeza e regularização da base', 'Feita'),
+  st('st2', 'o1', 'at6', 'Primer', 'Feita'),
+  st('st3', 'o1', 'at6', 'Manta: primeira camada', 'Não realizado', 'Falta material'),
+  st('st4', 'o1', 'at6', 'Teste de estanqueidade (72 h)'),
+  st('st5', 'o1', 'at8', 'Medição e marcação do nível', 'Feita'),
+  st('st6', 'o1', 'at8', 'Estrutura metálica da sala'),
+  st('st7', 'o1', 'at8', 'Placas e tratamento de juntas'),
+  st('st8', 'o1', 'at12', 'Lixamento', 'Feita'),
+  st('st9', 'o1', 'at12', 'Selador'),
+  st('st20', 'o2', 'at21', 'Estacas do bloco B1', 'Feita'),
+  st('st21', 'o2', 'at21', 'Estacas do bloco B2'),
+]
+
+export const mockNaoRealizados = [
+  { id: 'nr1', obra_id: 'o1', atividade_id: 'at6', semana: '2026-10-12', causa: 'Falta material', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr2', obra_id: 'o1', atividade_id: 'at8', semana: '2026-10-12', causa: 'Aguardando projeto', causa_detalhe: null, autor_id: 'u2' },
 ]

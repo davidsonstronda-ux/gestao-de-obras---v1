@@ -11,9 +11,16 @@
 import * as mock from './mockData.js'
 import { hoje } from './config.js'
 import { calcularFrente, frenteVisivelNoRisco, ordenarFrentes, situacaoEntrega } from './atraso.js'
-import { validarDiario } from './diario.js'
+import { acessoAoDia, frentesDoDia, validarDiario } from './diario.js'
 import { pode, obraNoSeletor } from './permissoes.js'
 import { diasEntre } from './datas.js'
+import { contadoresPedidos, diasNaColuna, estaAtrasado, etiquetaPedido, leadTime, lerQuantidade, ordenarPedidos, proximoStatus, recebidoComProblema, validarMudanca, validarNovoPedido } from './materiais.js'
+import { contarCriticos, geraEntrada, saldoDepois, situacaoInsumo, validarBaixa } from './estoque.js'
+import {
+  SITUACOES_SUBTAREFA, STATUS_ATIVIDADE, ancestrais, atividadesDaSemana, calendarioDaObra, descendentes, lerPercentual, montarEap,
+  moverPrazo, mudancaDeStatus, nomesUnicos, paiValido, podeMarcarNaoRealizado, podeVoltarSemana, proximaOrdem, segundaDaSemana,
+  semanaDe, trocarOrdem, validarCausa, validarAtividade, validarDiasSemana, validarFeriado, validarRestricao,
+} from './planejamento.js'
 
 // Cópia de trabalho: as telas podem criar e editar sem estragar o original.
 const db = structuredClone({
@@ -21,7 +28,10 @@ const db = structuredClone({
   ambientes: mock.mockAmbientes, empreiteiros: mock.mockEmpreiteiros, frentes: mock.mockFrentes,
   contratos: mock.mockContratos, frente_ambientes: mock.mockFrenteAmbientes, diarios: mock.mockDiarios,
   apontamentos: mock.mockApontamentos, fotos: mock.mockFotos, pendencias: mock.mockPendencias,
-  comentarios: mock.mockComentarios,
+  comentarios: mock.mockComentarios, materiais: mock.mockMateriais, pedidos: mock.mockPedidos,
+  pedido_historico: mock.mockPedidoHistorico, insumos: mock.mockInsumos, movimentos: mock.mockMovimentos,
+  calendarios: mock.mockCalendarios, feriados: mock.mockFeriados, atividades: mock.mockAtividades,
+  restricoes: mock.mockRestricoes, subtarefas: mock.mockSubtarefas, nao_realizados: mock.mockNaoRealizados,
 })
 
 const contexto = { obraId: null, perfil: null }
@@ -226,14 +236,24 @@ export async function listarFrentesCadastro() {
 }
 
 // ── diário ──────────────────────────────────────────────────────────────────
-export async function diarioDeHoje() {
+const DATA_VALIDA = /^\d{4}-\d{2}-\d{2}$/
+
+// O diário de um dia (padrão: hoje), com o aviso de se a pessoa pode editá-lo.
+// Quem trava é salvarDiario, que confere de novo; a tela só obedece.
+export async function diarioDoDia(data = hoje()) {
   await espera()
   const { obraId, erro } = exigirObra()
   if (erro) return falha(erro)
-  if (!pode(role(), 'lancarDiario')) return falha('Sem permissão.')
-  const data = hoje()
+  if (!pode(role(), 'verDiario')) return falha('Sem permissão.')
+  if (!DATA_VALIDA.test(data) || data > hoje()) return falha('Data inválida para o diário.')
   const existente = daObra('diarios', obraId).find((d) => d.data === data) || null
-  const doDia = daObra('frentes', obraId).filter((f) => frenteVisivelNoRisco(f, data))
+  const doDiario = existente ? db.apontamentos.filter((x) => x.diario_id === existente.id) : []
+  const acesso = acessoAoDia({ role: role(), userId: contexto.perfil.id, diario: existente, data, hoje: hoje() })
+  // Só leitura mostra o que foi marcado; editável soma as frentes abertas no dia.
+  const marcadas = doDiario.map((a) => a.frente_id)
+  const doDia = acesso.editavel
+    ? frentesDoDia(daObra('frentes', obraId), data, hoje(), marcadas)
+    : daObra('frentes', obraId).filter((f) => marcadas.includes(f.id))
   const fa = daObra('frente_ambientes', obraId)
   const frentes = doDia.map((f) => ({
     ...f,
@@ -243,28 +263,30 @@ export async function diarioDeHoje() {
       .map((x) => ({ id: x.id, nome: db.ambientes.find((a) => a.id === x.ambiente_id)?.nome })),
   }))
   const marcas = {}
-  if (existente) {
-    for (const a of db.apontamentos.filter((x) => x.diario_id === existente.id)) {
-      marcas[a.frente_id] = { situacao: a.situacao, motivo: a.motivo, motivo_detalhe: a.motivo_detalhe }
-    }
+  for (const a of doDiario) {
+    marcas[a.frente_id] = { situacao: a.situacao, motivo: a.motivo, motivo_detalhe: a.motivo_detalhe }
   }
-  return ok({ data, existente, frentes, marcas, empreiteiros: daObra('empreiteiros', obraId) })
+  return ok({ data, ehHoje: data === hoje(), acesso, existente, frentes, marcas, empreiteiros: daObra('empreiteiros', obraId) })
 }
 
-// Grava o diário do dia, os apontamentos, as conclusões por ambiente e as fotos.
+// Grava o diário do dia escolhido, os apontamentos, as conclusões por ambiente e as fotos.
 // Processos automáticos (PRD-BACKEND): primeiro "Andou" põe a frente Em andamento;
 // último ambiente concluído encerra a frente.
-export async function salvarDiario({ clima, equipes, ocorrencias, marcas, concluidos = [], fotos = [] }) {
+export async function salvarDiario({ data = hoje(), clima, equipes, ocorrencias, marcas, concluidos = [], fotos = [] }) {
   await espera()
   const { obraId, erro } = exigirObra()
   if (erro) return falha(erro)
   if (!pode(role(), 'lancarDiario')) return falha('Sem permissão.')
-  const data = hoje()
-  const frentesIds = daObra('frentes', obraId).filter((f) => frenteVisivelNoRisco(f, data)).map((f) => f.id)
+  if (!DATA_VALIDA.test(data) || data > hoje()) return falha('Data inválida para o diário.')
+  const existente = daObra('diarios', obraId).find((d) => d.data === data)
+  const acesso = acessoAoDia({ role: role(), userId: contexto.perfil.id, diario: existente, data, hoje: hoje() })
+  if (!acesso.editavel) return falha(acesso.motivo)
+  const marcadas = existente ? db.apontamentos.filter((a) => a.diario_id === existente.id).map((a) => a.frente_id) : []
+  const frentesIds = frentesDoDia(daObra('frentes', obraId), data, hoje(), marcadas).map((f) => f.id)
   const problemas = validarDiario({ clima, frentesIds, marcas })
   if (problemas.length) return falha(problemas.join(' '))
 
-  let diario = daObra('diarios', obraId).find((d) => d.data === data)
+  let diario = existente
   if (diario) Object.assign(diario, { clima, equipes, ocorrencias })
   else {
     diario = { id: novoId('d'), obra_id: obraId, data, clima, equipes, ocorrencias, autor_id: contexto.perfil.id }
@@ -384,6 +406,439 @@ export async function liberarFotos(ids, visivel) {
   if (!pode(role(), 'liberarFoto')) return falha('Só o engenheiro libera foto ao cliente.')
   for (const f of daObra('fotos', obraId)) if (ids.includes(f.id)) f.visivel_cliente = visivel
   return ok(ids.length)
+}
+
+// ── materiais (Kanban de pedidos) ───────────────────────────────────────────
+// O catálogo é da empresa (sem obra_id); pedidos e histórico são da obra.
+export async function listarCatalogoMateriais() {
+  await espera()
+  if (!pode(role(), 'verMateriais')) return falha('Sem permissão.')
+  return ok(db.materiais.map((m) => ({ ...m })).sort((a, b) => a.nome.localeCompare(b.nome)))
+}
+
+function montarPedido(p, historicoDaObra) {
+  const material = db.materiais.find((m) => m.id === p.material_id)
+  const historico = historicoDaObra.filter((h) => h.pedido_id === p.id).sort((a, b) => (a.data < b.data ? -1 : 1))
+  return {
+    ...p,
+    material: material ? { ...material } : null,
+    frente: db.frentes.find((f) => f.id === p.frente_id && f.obra_id === p.obra_id)?.servico || '—',
+    historico,
+    diasNaColuna: diasNaColuna(p, historico, hoje()),
+    leadTime: leadTime(historico),
+    atrasado: estaAtrasado(p, hoje()),
+    comProblema: recebidoComProblema(p),
+    etiqueta: etiquetaPedido(p, material?.categoria),
+  }
+}
+
+// O quadro da obra: pedidos (sem os entregues, a não ser que peça) e os contadores.
+export async function listarPedidos({ entregues = false } = {}) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verMateriais')) return falha('Sem permissão.')
+  const historico = daObra('pedido_historico', obraId)
+  const todos = daObra('pedidos', obraId).map((p) => montarPedido(p, historico))
+  const ativos = todos.filter((p) => p.status !== 'Entregue')
+  return ok({
+    pedidos: ordenarPedidos(entregues ? todos : ativos),
+    contadores: contadoresPedidos(ativos, hoje()),
+    totalEntregues: todos.length - ativos.length,
+  })
+}
+
+export async function criarPedido({ material_id, quantidade, frente_id, prioridade = 'Normal' }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'pedirMaterial')) return falha('Sem permissão para fazer pedido.')
+  const problemas = Object.values(validarNovoPedido({ material_id, quantidade, frente_id, prioridade }))
+  if (problemas.length) return falha(problemas.join(' '))
+  if (!db.materiais.some((m) => m.id === material_id)) return falha('Material não encontrado no catálogo.')
+  if (!daObra('frentes', obraId).some((f) => f.id === frente_id)) return falha('Frente não encontrada nesta obra.')
+  const p = {
+    id: novoId('pm'), obra_id: obraId, material_id, quantidade: lerQuantidade(quantidade), frente_id, prioridade,
+    status: 'Solicitar', fornecedor: '', previsao_entrega: '', qtd_bate_nf: null, estado_ok: null, avarias: '', foto_nf: '',
+    criado_por: contexto.perfil.id,
+  }
+  db.pedidos.push(p)
+  db.pedido_historico.push({ id: novoId('ph'), obra_id: obraId, pedido_id: p.id, status: 'Solicitar', data: hoje(), autor_id: contexto.perfil.id })
+  return ok(montarPedido(p, daObra('pedido_historico', obraId)))
+}
+
+// Muda o pedido de coluna (uma por vez) e grava no histórico. Quem confere as
+// regras é validarMudanca (lib/materiais.js); a tela só mostra o formulário.
+export async function moverPedido(pedidoId, novoStatus, dados = {}) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'pedirMaterial')) return falha('Sem permissão para mover pedido.')
+  const p = daObra('pedidos', obraId).find((x) => x.id === pedidoId)
+  if (!p) return falha('Pedido não encontrado nesta obra.')
+  const problemas = Object.values(validarMudanca(p.status, novoStatus, dados))
+  if (problemas.length) return falha(problemas.join(' '))
+  const avancando = proximoStatus(p.status) === novoStatus
+  if (avancando && novoStatus === 'A caminho') {
+    Object.assign(p, { fornecedor: dados.fornecedor.trim(), previsao_entrega: dados.previsao_entrega })
+  }
+  if (avancando && novoStatus === 'No almoxarifado') {
+    Object.assign(p, { qtd_bate_nf: dados.qtd_bate_nf, estado_ok: dados.estado_ok, avarias: String(dados.avarias || '').trim(), foto_nf: dados.foto_nf || '' })
+  }
+  if (avancando && novoStatus === 'Entregue') {
+    if (!daObra('frentes', obraId).some((f) => f.id === dados.frente_id)) return falha('Frente não encontrada nesta obra.')
+    p.frente_id = dados.frente_id
+  }
+  p.status = novoStatus
+  db.pedido_historico.push({ id: novoId('ph'), obra_id: obraId, pedido_id: p.id, status: novoStatus, data: hoje(), autor_id: contexto.perfil.id })
+  const entrouNoEstoque = avancando && novoStatus === 'No almoxarifado' && darEntradaDoPedido(p, obraId)
+  return ok({ ...montarPedido(p, daObra('pedido_historico', obraId)), entrouNoEstoque })
+}
+
+// ── estoque (opcional) do módulo Materiais ──────────────────────────────────
+// Entrada automática: recebido com o checklist OK soma no insumo do mesmo
+// material (cria o insumo se não existir). Um pedido gera no máximo uma entrada,
+// mesmo se voltar de coluna e for recebido de novo. Devolve se entrou.
+function darEntradaDoPedido(p, obraId) {
+  if (!geraEntrada(p)) return false
+  if (daObra('movimentos', obraId).some((m) => m.pedido_id === p.id)) return false
+  let insumo = daObra('insumos', obraId).find((i) => i.material_id === p.material_id)
+  if (!insumo) {
+    const material = db.materiais.find((m) => m.id === p.material_id)
+    insumo = { id: novoId('in'), obra_id: obraId, material_id: p.material_id, saldo: 0, unidade: material?.unidade || '', saldo_minimo: 0 }
+    db.insumos.push(insumo)
+  }
+  db.movimentos.push({
+    id: novoId('mv'), obra_id: obraId, insumo_id: insumo.id, tipo: 'Entrada', quantidade: p.quantidade, data: hoje(),
+    frente_id: p.frente_id, origem: 'Pedido', pedido_id: p.id, autor_id: contexto.perfil.id,
+  })
+  insumo.saldo = saldoDepois(insumo.saldo, 'Entrada', p.quantidade)
+  return true
+}
+
+function montarInsumo(i) {
+  const material = db.materiais.find((m) => m.id === i.material_id)
+  return { ...i, nome: material?.nome || 'Material', categoria: material?.categoria || '', situacao: situacaoInsumo(i) }
+}
+
+// O estoque da obra: insumos com nome e situação, e quantos estão críticos.
+export async function listarEstoque() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verMateriais')) return falha('Sem permissão.')
+  const insumos = daObra('insumos', obraId).map(montarInsumo)
+  return ok({ insumos, criticos: contarCriticos(insumos) })
+}
+
+// Histórico de um insumo, mais recente primeiro.
+export async function listarMovimentos(insumoId) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verMateriais')) return falha('Sem permissão.')
+  if (!daObra('insumos', obraId).some((i) => i.id === insumoId)) return falha('Insumo não encontrado nesta obra.')
+  return ok(daObra('movimentos', obraId).filter((m) => m.insumo_id === insumoId)
+    .map((m) => ({ ...m, frente: db.frentes.find((f) => f.id === m.frente_id)?.servico || '—', autor: nomePessoa(m.autor_id) }))
+    .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0)))
+}
+
+// Baixa de estoque (saída manual). O saldo nunca fica negativo.
+export async function registrarBaixa({ insumo_id, quantidade, frente_id, data = hoje() }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'pedirMaterial')) return falha('Sem permissão para dar baixa no estoque.')
+  const insumo = daObra('insumos', obraId).find((i) => i.id === insumo_id)
+  if (insumo_id && !insumo) return falha('Insumo não encontrado nesta obra.')
+  const problemas = Object.values(validarBaixa({ insumo, quantidade, frente_id, data }, hoje()))
+  if (problemas.length) return falha(problemas.join(' '))
+  if (!daObra('frentes', obraId).some((f) => f.id === frente_id)) return falha('Frente não encontrada nesta obra.')
+  const q = lerQuantidade(quantidade)
+  db.movimentos.push({
+    id: novoId('mv'), obra_id: obraId, insumo_id: insumo.id, tipo: 'Saída', quantidade: q, data,
+    frente_id, origem: 'Manual', pedido_id: null, autor_id: contexto.perfil.id,
+  })
+  insumo.saldo = saldoDepois(insumo.saldo, 'Saída', q)
+  return ok(montarInsumo(insumo))
+}
+
+// ── planejamento (Last Planner + EAP) ───────────────────────────────────────
+// Uma lista só de atividades por obra, lida pelas 4 abas. Quem monta a árvore,
+// o código 1.2.1 e o resumo dos grupos é lib/planejamento.js.
+function calendarioDe(obraId) {
+  return calendarioDaObra(db.calendarios.find((c) => c.obra_id === obraId), daObra('feriados', obraId))
+}
+
+export async function listarPlanejamento() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verCurtoPrazo')) return falha('Sem permissão.')
+  const frentes = daObra('frentes', obraId)
+  const cal = calendarioDe(obraId)
+  const itens = montarEap(daObra('atividades', obraId), cal, hoje())
+    .map((i) => ({ ...i, frente: frentes.find((f) => f.id === i.frente_id)?.servico || null }))
+  const daSemana = {
+    subtarefas: daObra('subtarefas', obraId).map((s) => ({ ...s })),
+    naoRealizados: daObra('nao_realizados', obraId).map((n) => ({ ...n, autor: nomePessoa(n.autor_id) })),
+  }
+  // O mestre só recebe o que o Curto prazo usa (PRD-BACKEND, permissões do Planejamento).
+  if (!pode(role(), 'verPlanejamento')) {
+    return ok({ itens, ...daSemana, restricoes: [], responsaveis: [], frentes: [], calendario: { dias_semana: cal.dias_semana, feriados: [] } })
+  }
+  const restricoes = daObra('restricoes', obraId).map((r) => {
+    const a = itens.find((i) => i.id === r.atividade_id)
+    return { ...r, atividade: a ? { id: a.id, codigo: a.codigo, titulo: a.titulo, arquivada: a.arquivada } : null }
+  })
+  // Sugestões para "responsável": quem trabalha na obra, os empreiteiros e quem já foi usado.
+  const equipe = db.membros.filter((m) => m.obra_id === obraId).map((m) => db.profiles.find((p) => p.id === m.pessoa_id))
+    .filter((p) => p && pode(p.role, 'verFrentes')).map((p) => p.nome)
+  return ok({
+    itens,
+    ...daSemana,
+    restricoes,
+    responsaveis: nomesUnicos([...equipe, ...daObra('empreiteiros', obraId).map((e) => e.nome), ...restricoes.map((r) => r.responsavel)]),
+    frentes: frentes.map((f) => ({ id: f.id, servico: f.servico })).sort((a, b) => a.servico.localeCompare(b.servico)),
+    calendario: {
+      dias_semana: cal.dias_semana,
+      feriados: daObra('feriados', obraId).map((f) => ({ ...f })).sort((a, b) => (a.data < b.data ? -1 : 1)),
+    },
+  })
+}
+
+export async function salvarAtividade(campos) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro monta a EAP.')
+  const atividades = daObra('atividades', obraId)
+  const existente = campos.id ? atividades.find((a) => a.id === campos.id) : null
+  if (campos.id && !existente) return falha('Atividade não encontrada nesta obra.')
+  if (existente?.arquivada) return falha('Desarquive a atividade antes de mudar.')
+  // Grupo segundo a mesma regra da árvore (lib), para a ficha e o salvamento não discordarem.
+  const ehGrupo = Boolean(existente) && Boolean(montarEap(atividades, calendarioDe(obraId)).find((i) => i.id === existente.id)?.ehGrupo)
+  const problemas = Object.values(validarAtividade(campos, { ehGrupo }))
+  if (problemas.length) return falha(problemas.join(' '))
+  const paiId = campos.pai_id || null
+  if (!paiValido(atividades, existente?.id, paiId)) return falha('Escolha outra atividade para colocar esta dentro.')
+  const frenteId = campos.frente_id || null
+  if (frenteId && !daObra('frentes', obraId).some((f) => f.id === frenteId)) return falha('Frente não encontrada nesta obra.')
+  const dados = { titulo: campos.titulo.trim(), frente_id: frenteId }
+  if (!ehGrupo) Object.assign(dados, { inicio: campos.inicio, fim: campos.fim, progresso: lerPercentual(campos.progresso) })
+  if (existente) {
+    if ((existente.pai_id || null) !== paiId) Object.assign(dados, { pai_id: paiId, ordem: proximaOrdem(atividades, paiId) })
+    Object.assign(existente, dados)
+    return ok({ ...existente })
+  }
+  const nova = {
+    id: novoId('at'), obra_id: obraId, pai_id: paiId, ordem: proximaOrdem(atividades, paiId), ...dados,
+    status: 'A fazer', concluida_em: null, arquivada: false, criado_por: contexto.perfil.id,
+  }
+  db.atividades.push(nova)
+  return ok({ ...nova })
+}
+
+// Arquivar leva as subatividades junto. Desarquivar devolve a atividade, as
+// subatividades e os grupos acima dela (senão ela ficaria dentro de um arquivado).
+export async function arquivarAtividade(id, arquivar) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro arquiva atividade.')
+  const atividades = daObra('atividades', obraId)
+  if (!atividades.some((a) => a.id === id)) return falha('Atividade não encontrada nesta obra.')
+  const ids = new Set([id, ...descendentes(atividades, id), ...(arquivar ? [] : ancestrais(atividades, id))])
+  for (const a of atividades) if (ids.has(a.id)) a.arquivada = arquivar
+  return ok(ids.size)
+}
+
+export async function moverAtividade(id, direcao) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro muda a ordem da EAP.')
+  const atividades = daObra('atividades', obraId)
+  if (!atividades.some((a) => a.id === id)) return falha('Atividade não encontrada nesta obra.')
+  const troca = trocarOrdem(atividades, id, direcao)
+  if (!troca) return falha(direcao < 0 ? 'Ela já é a primeira deste nível.' : 'Ela já é a última deste nível.')
+  for (const t of troca) atividades.find((a) => a.id === t.id).ordem = t.ordem
+  return ok(troca)
+}
+
+// Curto prazo: a atividade como ela aparece numa semana (null se não entra nela).
+function naSemana(obraId, id, semana) {
+  return atividadesDaSemana(montarEap(daObra('atividades', obraId), calendarioDe(obraId)), semana).find((a) => a.id === id) || null
+}
+
+// Muda o cartão de coluna. Só na semana de hoje: o status é o de agora.
+export async function moverNoKanban(id, novo) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'moverCurtoPrazo')) return falha('Sem permissão para mexer na semana.')
+  if (!STATUS_ATIVIDADE.includes(novo)) return falha('Coluna inválida.')
+  const semana = semanaDe(hoje())
+  if (!naSemana(obraId, id, semana)) return falha('Esta atividade não está na semana de hoje.')
+  const a = daObra('atividades', obraId).find((x) => x.id === id)
+  Object.assign(a, mudancaDeStatus(a, novo, hoje()))
+  // Concluída na semana: o "não realizado" desta semana deixa de valer.
+  if (novo === 'Concluído') db.nao_realizados = db.nao_realizados.filter((n) => !(n.obra_id === obraId && n.atividade_id === id && n.semana === semana.inicio))
+  return ok({ ...a })
+}
+
+export async function marcarNaoRealizado(id, semanaInicio, { causa, causa_detalhe }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'moverCurtoPrazo')) return falha('Sem permissão para mexer na semana.')
+  const semana = semanaDe(semanaInicio)
+  const a = naSemana(obraId, id, semana)
+  if (!a) return falha('Esta atividade não está nesta semana.')
+  if (!podeMarcarNaoRealizado(a, semana, hoje())) return falha('Só dá para marcar o que não foi concluído, numa semana que já começou.')
+  const problema = validarCausa({ causa, causa_detalhe })
+  if (problema) return falha(problema)
+  const dados = { causa, causa_detalhe: causa === 'Outro' ? causa_detalhe.trim() : null, autor_id: contexto.perfil.id }
+  const existente = db.nao_realizados.find((n) => n.obra_id === obraId && n.atividade_id === id && n.semana === semana.inicio)
+  if (existente) Object.assign(existente, dados)
+  else db.nao_realizados.push({ id: novoId('nr'), obra_id: obraId, atividade_id: id, semana: semana.inicio, ...dados })
+  return ok(true)
+}
+
+export async function desfazerNaoRealizado(id, semanaInicio) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'moverCurtoPrazo')) return falha('Sem permissão para mexer na semana.')
+  const semana = segundaDaSemana(semanaInicio)
+  const antes = db.nao_realizados.length
+  db.nao_realizados = db.nao_realizados.filter((n) => !(n.obra_id === obraId && n.atividade_id === id && n.semana === semana))
+  return antes === db.nao_realizados.length ? falha('Não havia "não realizado" nesta semana.') : ok(true)
+}
+
+export async function criarSubtarefa(atividadeId, titulo) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'moverCurtoPrazo')) return falha('Sem permissão para mexer na semana.')
+  if (!String(titulo || '').trim()) return falha('Escreva a subtarefa.')
+  const a = daObra('atividades', obraId).find((x) => x.id === atividadeId)
+  if (!a || a.arquivada) return falha('Atividade não encontrada nesta obra.')
+  const s = { id: novoId('st'), obra_id: obraId, atividade_id: a.id, titulo: titulo.trim(), situacao: 'Pendente', causa: null, causa_detalhe: null }
+  db.subtarefas.push(s)
+  return ok({ ...s })
+}
+
+export async function marcarSubtarefa(id, situacao, { causa, causa_detalhe } = {}) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'moverCurtoPrazo')) return falha('Sem permissão para mexer na semana.')
+  const s = daObra('subtarefas', obraId).find((x) => x.id === id)
+  if (!s) return falha('Subtarefa não encontrada nesta obra.')
+  if (!SITUACOES_SUBTAREFA.includes(situacao)) return falha('Situação inválida.')
+  if (situacao === 'Não realizado') {
+    const problema = validarCausa({ causa, causa_detalhe })
+    if (problema) return falha(problema)
+    Object.assign(s, { situacao, causa, causa_detalhe: causa === 'Outro' ? causa_detalhe.trim() : null })
+  } else Object.assign(s, { situacao, causa: null, causa_detalhe: null })
+  return ok({ ...s })
+}
+
+export async function removerSubtarefa(id) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'apagar')) return falha('Só o engenheiro apaga subtarefa.')
+  if (!daObra('subtarefas', obraId).some((s) => s.id === id)) return falha('Subtarefa não encontrada nesta obra.')
+  db.subtarefas = db.subtarefas.filter((s) => s.id !== id)
+  return ok(id)
+}
+
+// Restrições (Médio prazo): criar e editar, resolver/reabrir, mudar de semana.
+export async function salvarRestricao(campos) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro registra restrição.')
+  const existente = campos.id ? daObra('restricoes', obraId).find((r) => r.id === campos.id) : null
+  if (campos.id && !existente) return falha('Restrição não encontrada nesta obra.')
+  const problemas = Object.values(validarRestricao(campos, hoje()))
+  if (problemas.length) return falha(problemas.join(' '))
+  const atividade = daObra('atividades', obraId).find((a) => a.id === campos.atividade_id)
+  if (!atividade || atividade.arquivada) return falha('Atividade não encontrada nesta obra.')
+  // Restrição trava uma atividade de verdade, não um grupo (o "prontas" só olha as sem subatividades).
+  if (montarEap(daObra('atividades', obraId), calendarioDe(obraId)).find((i) => i.id === atividade.id)?.ehGrupo) {
+    return falha('Escolha uma atividade sem subatividades: a restrição trava quem executa.')
+  }
+  const dados = { atividade_id: atividade.id, tipo: campos.tipo, descricao: campos.descricao.trim(), prazo: campos.prazo, responsavel: campos.responsavel.trim() }
+  if (existente) {
+    Object.assign(existente, dados)
+    return ok({ ...existente })
+  }
+  const r = { id: novoId('rs'), obra_id: obraId, ...dados, resolvida_em: null }
+  db.restricoes.push(r)
+  return ok({ ...r })
+}
+
+export async function resolverRestricao(id, resolvida) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro resolve restrição.')
+  const r = daObra('restricoes', obraId).find((x) => x.id === id)
+  if (!r) return falha('Restrição não encontrada nesta obra.')
+  r.resolvida_em = resolvida ? hoje() : null
+  return ok({ ...r })
+}
+
+export async function moverRestricao(id, direcao) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro muda a restrição de semana.')
+  const r = daObra('restricoes', obraId).find((x) => x.id === id)
+  if (!r) return falha('Restrição não encontrada nesta obra.')
+  if (direcao < 0 && !podeVoltarSemana(r.prazo, hoje())) return falha('Ela já está nesta semana; não dá para voltar ao passado.')
+  // Vencida que anda para a frente sai da semana do prazo antigo, não de hoje.
+  r.prazo = moverPrazo(r.prazo < hoje() ? hoje() : r.prazo, direcao)
+  return ok({ ...r })
+}
+
+export async function salvarDiasDeTrabalho(diasSemana) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro muda o calendário.')
+  const problema = validarDiasSemana(diasSemana)
+  if (problema) return falha(problema)
+  const dias = [...diasSemana].sort((a, b) => a - b)
+  const cal = db.calendarios.find((c) => c.obra_id === obraId)
+  if (cal) cal.dias_semana = dias
+  else db.calendarios.push({ id: novoId('cal'), obra_id: obraId, dias_semana: dias })
+  return ok(dias)
+}
+
+export async function adicionarFeriado({ data, nome }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro muda o calendário.')
+  const problemas = Object.values(validarFeriado({ data, nome }, daObra('feriados', obraId)))
+  if (problemas.length) return falha(problemas.join(' '))
+  const f = { id: novoId('fe'), obra_id: obraId, data, nome: nome.trim() }
+  db.feriados.push(f)
+  return ok({ ...f })
+}
+
+export async function removerFeriado(id) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'planejar')) return falha('Só o engenheiro muda o calendário.')
+  if (!daObra('feriados', obraId).some((f) => f.id === id)) return falha('Feriado não encontrado nesta obra.')
+  db.feriados = db.feriados.filter((f) => f.id !== id)
+  return ok(id)
 }
 
 // ── cadastros da obra ───────────────────────────────────────────────────────

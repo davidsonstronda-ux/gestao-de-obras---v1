@@ -3,6 +3,8 @@ import Frentes from '../screens/frentes.jsx'
 import Frente from '../screens/frente.jsx'
 import Pendencias, { Pendencia } from '../screens/pendencias.jsx'
 import Fotos from '../screens/fotos.jsx'
+import Materiais from '../screens/materiais.jsx'
+import Planejamento from '../screens/planejamento.jsx'
 
 // Arquiteta: responde pendências de projeto; vê frentes e fotos, sem valores.
 export default function AppArquiteta() {
@@ -13,6 +15,8 @@ export default function AppArquiteta() {
     case 'frente': corpo = <Frente goto={goto} params={params} />; break
     case 'pendencia': corpo = <Pendencia goto={goto} params={params} />; break
     case 'fotos': corpo = <Fotos />; break
+    case 'materiais': corpo = <Materiais />; break
+    case 'planejamento': corpo = <Planejamento />; break
     default: corpo = <Pendencias goto={goto} params={params} />
   }
   return <Casca role="Arquiteta" tela={tela} goto={goto}>{corpo}</Casca>

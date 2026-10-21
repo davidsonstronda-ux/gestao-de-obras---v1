@@ -31,13 +31,14 @@ Um sistema de acompanhamento de frentes de serviço que responde toda manhã "a 
 
 ```
 Login · Criar conta · Aguardando liberação
-└── Engenheiro: Frentes em risco · Diário · Pendências · Fotos · Cadastros (Obras, Frentes e cronograma, Empreiteiros e ambientes, Equipe)
-└── Mestre:     Diário do dia · Frentes · Pendências · Fotos
-└── Arquiteta:  Pendências · Frentes · Fotos
+└── Engenheiro: Frentes em risco · Diário · Pendências · Fotos · Materiais · Planejamento · Cadastros (Obras, Frentes e cronograma, Empreiteiros e ambientes, Equipe)
+└── Mestre:     Diário do dia · Frentes · Pendências · Fotos · Materiais · Planejamento (só Curto prazo)
+└── Arquiteta:  Pendências · Frentes · Fotos · Materiais · Planejamento (só vê)
 └── Cliente:    Painel da obra
 ```
 
 - Barra inferior do engenheiro no celular: **Frentes · Diário · Pendências · Fotos · Mais** ("Mais" abre Cadastros).
+- Barra inferior do mestre no celular (desde 21/10, quando entrou o Planejamento): **Diário · Frentes · Pendências · Fotos · Mais** ("Mais" abre Materiais e Planejamento).
 - "Meu perfil" (nome, trocar senha, Sair) fica num ícone no canto superior direito, para todos os perfis.
 - "Frentes" do mestre e da arquiteta é a mesma tela Frentes em risco, sem nenhum valor e sem ações de engenheiro.
 
@@ -386,6 +387,79 @@ No topo, **Aguardando liberação**: contas novas com nome, email e data. Abaixo
 
 ---
 
+## Tela: Materiais (Kanban de pedidos)
+
+**Quem acessa:** Engenheiro e Mestre (fazem e movem pedidos); Arquiteta só vê. Cliente não.
+**Chega aqui por:** menu Materiais. No celular: dentro de "Mais" para o engenheiro (a barra já tem 5); 5º item da barra para o mestre.
+
+**O que aparece**
+1. **Contadores:** Em cotação · Chegam em 7 dias (A caminho com previsão de hoje até daqui a 7 dias) · Atrasados (A caminho com previsão vencida).
+2. **Quadro** com as colunas Solicitar · Em cotação · A caminho · No almoxarifado (e Entregue, com "ver entregues" marcado). No celular, as colunas rolam para o lado.
+3. **Cartão:** material e quantidade com unidade · frente · etiqueta (Crítico em vermelho; Grosso em azul; Acabamento e Instalações em verde) · fornecedor e previsão, se houver · "há X dias nesta coluna" · lead time, depois de chegar ao almoxarifado · etiqueta "Atrasado" e cartão vermelho quando a previsão venceu · alerta "Recebido com problema" quando o checklist teve um "não".
+
+**Ações**
+- **Novo pedido:** material (lista do catálogo), quantidade (só número, teclado numérico), frente e prioridade (Normal / Crítico). Entra em Solicitar.
+- **Avançar** para a próxima coluna e **Voltar** uma coluna, por botões. Avançar para A caminho pede fornecedor e previsão (já vem com hoje); para No almoxarifado abre o checklist de recebimento; para Entregue pede a frente de aplicação.
+
+**Estado vazio**
+"Nenhum pedido de material nesta obra." com o botão "Fazer o primeiro pedido".
+
+**Aba Estoque (opcional)**
+- Abas da tela: Em aberto · Ver entregues · Estoque. Os contadores ganham um quarto, **Insumos críticos** (saldo ≤ mínimo); tocar nele abre o Estoque já filtrado.
+- Tabela: insumo · saldo · mínimo · situação (etiqueta vermelha "Crítico" ou "OK"), críticos primeiro. Busca pelo nome e filtro "Só críticos". Tocar no insumo abre o histórico de movimentos (data, entrada/saída, quantidade, frente, origem).
+- **Baixa de estoque** (engenheiro e mestre): insumo, quantidade (só número), frente e data (nasce com hoje, não aceita futuro). Quantidade maior que o saldo: aviso "Saldo de X; não dá para baixar Y." e não salva.
+- Entrada automática: ao confirmar o checklist de recebimento com os dois "sim", o aviso diz que o material entrou no estoque.
+- Vazio: "Nenhum insumo no estoque desta obra. O estoque começa sozinho quando um pedido chega ao almoxarifado com o checklist OK."
+
+---
+
+## Tela: Planejamento (Last Planner + EAP)
+
+**Quem acessa:** Engenheiro (tudo) e Arquiteta (só vê as 4 abas). Mestre: só a aba Curto prazo. Cliente não.
+**Chega aqui por:** menu Planejamento. No celular: dentro de "Mais" para o engenheiro; 5º item da barra para a arquiteta.
+
+**Abas internas:** EAP · Longo prazo · Médio prazo · Curto prazo. As quatro usam a mesma lista de atividades da obra: mudou numa, as outras mostram na hora.
+
+**Aba EAP**
+- Árvore das atividades, recuada por nível, com o código automático (1, 1.1, 1.2.1) em fonte mono. Cada linha: código · título · início–fim · duração em dias úteis · frente ligada, se houver · % realizado. Grupo (com subatividades) em negrito, com datas e % calculados das filhas.
+- Botões (engenheiro): **Nova atividade** e **Calendário**. Filtro **Mostrar arquivadas (N)**.
+- Tocar numa atividade abre a ficha: título (obrigatório), dentro de (nível principal ou outra atividade), início e fim (nascem com hoje; fim não antes do início; grupo não edita datas), frente ligada (opcional), % realizado (só número, 0 a 100, teclado numérico). Na ficha: **Salvar**, **Adicionar subatividade**, **Subir** / **Descer** na ordem, **Arquivar** (pede confirmação; num grupo avisa quantas subatividades vão junto) ou **Desarquivar**.
+- **Calendário:** dias de trabalho (seg a dom, pelo menos um) e feriados (data + nome; remover pede confirmação). Muda as durações na hora.
+- Arquiteta vê a árvore e abre a ficha só para ler.
+- Vazio: "Esta obra ainda não tem atividades planejadas." com o botão "Criar a primeira atividade" (engenheiro).
+
+**Aba Longo prazo (cronograma)**
+- No topo, três números da obra: **previsto hoje** (%), **realizado** (%) e a **diferença** em pontos (vermelha quando o realizado está atrás). O % da obra é a média das atividades do nível principal pesada pela duração, como nos grupos.
+- **Previsto** de uma atividade = dias úteis já passados do período, sem contar hoje, ÷ duração (até o dia do início, 0%; depois do fim, 100%). Grupo: média das filhas pesada pela duração.
+- Botão **Semana / Mês** troca a escala. Computador: grade com o código e o título à esquerda e as barras em CSS à direita, rolando para o lado. Cada barra ocupa o período planejado; o preenchimento é o realizado; um traço marca o previsto de hoje; uma linha vertical marca hoje. Grupo em barra escura e fina. Legenda embaixo.
+- Celular: em vez do gráfico, lista com código, título, datas, barra do realizado com o traço do previsto e "real X% · previsto Y%" (em vermelho quando atrás).
+- Arquivadas não aparecem. Tocar numa linha abre a mesma ficha da EAP.
+- Vazio: "Sem atividades para pôr no cronograma." com o botão "Ir para a EAP".
+- Linha de base (planejado × atual salvos) fica para depois.
+
+**Aba Médio prazo (lookahead / restrições)**
+- Janela de **3 a 6 semanas** a partir desta (segunda a domingo); padrão 4. Uma coluna por semana ("Esta semana", depois "dd/mm a dd/mm"); no celular as colunas rolam para o lado.
+- No topo, três números: **restrições abertas**, **vencidas** (abertas com prazo antes de hoje; vermelho) e **prontas para executar**: das atividades da janela (sem subatividades, não arquivadas, abaixo de 100% e começando até o fim da janela, inclusive as atrasadas), quantas não têm restrição aberta — "X de Y".
+- **Cartão da restrição:** tipo com cor e ícone (Material, Mão de obra, Método, Equipamento, Projeto, Segurança, Logística) · descrição · atividade (código e título) · responsável · prazo · etiqueta "Vencida" (vermelha) ou "Resolvida" (verde). A restrição fica na semana do prazo; vencida e aberta aparece em "Esta semana", no topo.
+- **Ações (engenheiro):** **Nova restrição** — descrição, tipo, atividade (só as sem subatividades), prazo de resolução (nasce com hoje, não aceita antes de hoje), responsável (texto, com sugestões: equipe, empreiteiros e responsáveis já usados). Tocar no cartão edita. **Semana anterior / próxima** por botões (o prazo anda 7 dias; não volta para antes desta semana). **Resolvida** / **Reabrir**.
+- **Filtros:** nº de semanas (3 a 6), responsável, mostrar resolvidas. Abaixo do quadro: "N restrições depois de dd/mm" quando houver.
+- Restrição de atividade arquivada não aparece. Arquiteta vê sem mexer.
+- Vazio: "Nenhuma restrição nas próximas semanas." com "Registrar a primeira restrição" (engenheiro).
+
+**Aba Curto prazo (semana: Kanban + PPC)**
+- **Quem:** engenheiro e mestre mexem; arquiteta só vê. Para o mestre, o Planejamento abre só nesta aba.
+- Navegação: **‹ semana anterior · "19/10 a 25/10" · próxima ›** e o atalho "Voltar para esta semana".
+- **Entra na semana** a atividade sem subatividades, não arquivada, que não foi concluída antes da semana e cujo período cruza a semana **ou** que já devia ter terminado (etiqueta âmbar **Acumulada**).
+- **PPC** = concluídas na semana ÷ planejadas da semana × 100: número grande, barra e "X de Y concluídas", com quantas ficaram "não realizadas". Concluída = `concluida_em` até o domingo da semana.
+- **Kanban:** A fazer · Em andamento · Concluído. Cartão: código, título, datas, "Acumulada", "2 de 4 subtarefas", e a etiqueta vermelha "Não realizado: causa". Botões ‹ › mudam a coluna (só na semana atual). Ir para Concluído põe 100% e grava a data; sair de Concluído não mexe no %.
+- **Tocar no cartão** abre a ficha da semana: coluna (select, só na semana atual), checklist de subtarefas (marcar feita; "não realizada" pede a causa; incluir subtarefa; apagar só o engenheiro, com confirmação) e **Não realizado nesta semana** (causa obrigatória com os motivos do diário; "Outro" pede detalhe; dá para desfazer). Não realizado só em semana atual ou passada e só em atividade não concluída.
+- Semana passada: só "não realizado" e subtarefas. Semana futura: só ver.
+- Vazio: "Nenhuma atividade planejada para esta semana." com "Ir para a EAP" (quem pode ver a EAP).
+- Menu do mestre no celular: **Diário · Frentes · Pendências · Fotos · Mais** (Mais: Materiais e Planejamento), igual ao engenheiro.
+- Gráfico do PPC ao longo das semanas fica para depois.
+
+---
+
 ## Textos do sistema
 
 - Botões: Salvar, Cancelar, Novo, Editar, Apagar, Fechar, Reabrir, Liberar, Sair.
@@ -451,6 +525,10 @@ Usuários de exemplo:
 - [ ] O botão Cobrar abre o WhatsApp com o texto pronto.
 - [ ] Todas as telas funcionam no celular sem rolagem horizontal.
 - [ ] Cada lista tem estado vazio com texto próprio.
+- [ ] Materiais da obra 1 mostra 1 pedido atrasado (manta asfáltica) em vermelho; trocar para a obra 2 mostra só os 2 pedidos dela.
+- [ ] Pedido só passa para A caminho com fornecedor e previsão, e só entra no almoxarifado com o checklist respondido.
+- [ ] Estoque da obra 1 mostra 2 insumos críticos (cimento e bloco); a obra 2 mostra só a areia dela.
+- [ ] Receber um pedido com o checklist OK soma a quantidade no estoque; baixa maior que o saldo é recusada.
 
 ## A conta que vai chegar depois
 

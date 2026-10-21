@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { liberarPessoa, listarEmpreiteirosEAmbientes, listarEquipe, listarFrentesCadastro, listarMinhasObras, salvarLogo } from '../lib/dados.js'
 import { useSessao } from '../lib/SessaoContext.jsx'
-import { PERFIS } from '../lib/permissoes.js'
+import { MENUS, PERFIS, pode } from '../lib/permissoes.js'
 import { formatarDiaMes, formatarDinheiro } from '../lib/datas.js'
 import { Cabecalho, CADASTROS, Carregando, EstadoVazio, Erro, Folha, Icon, LOGO_PADRAO, Meta, ROTULOS, Tag, TituloSecao, corDe, useAviso, useCarregar } from '../components/index.jsx'
 
@@ -14,12 +14,16 @@ function EmBreve({ oque }) {
 }
 
 export function Mais({ goto }) {
+  const { perfil } = useSessao()
+  // O mestre também tem "Mais" (Materiais e Planejamento), mas sem os Cadastros.
+  const cadastra = pode(perfil.role, 'cadastrar')
+  const telas = [...(MENUS[perfil.role].noMais || []), ...(cadastra ? CADASTROS : [])]
   return (
     <>
-      <Cabecalho abas={<button className="aba ativa">Cadastros</button>} />
+      <Cabecalho abas={<button className="aba ativa">{cadastra ? 'Cadastros' : 'Mais'}</button>} />
       <main className="conteudo">
         <div className="cartao">
-          {CADASTROS.map((c) => (
+          {telas.map((c) => (
             <button key={c} className="linha-lista" onClick={() => goto(c)}>
               <div className="amb"><Icon nome={c} tamanho={24} /><span className="titulo">{ROTULOS[c]}</span></div>
               <div className="lado"><Icon nome="seta" tamanho={20} /></div>

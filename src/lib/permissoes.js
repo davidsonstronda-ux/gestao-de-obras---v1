@@ -21,19 +21,38 @@ const MATRIZ = {
   cadastrar:           ['Engenheiro'],
   gerenciarUsuarios:   ['Engenheiro'],
   verPainelCliente:    ['Cliente'],
+  verMateriais:        ['Engenheiro', 'Mestre', 'Arquiteta'],
+  pedirMaterial:       ['Engenheiro', 'Mestre'],
+  verPlanejamento:     ['Engenheiro', 'Arquiteta'],
+  planejar:            ['Engenheiro'],
+  verCurtoPrazo:       ['Engenheiro', 'Mestre', 'Arquiteta'],
+  moverCurtoPrazo:     ['Engenheiro', 'Mestre'],
 }
 
 export function pode(role, acao) {
   return (MATRIZ[acao] || []).includes(role)
 }
 
+// Abas do Planejamento que cada perfil abre: o mestre só a semana (Curto prazo).
+export function abasDoPlanejamento(role) {
+  if (pode(role, 'verPlanejamento')) return ['eap', 'longo', 'medio', 'curto']
+  return pode(role, 'verCurtoPrazo') ? ['curto'] : []
+}
+
 // Menu de cada perfil, na ordem. `inicio` é a tela que abre.
-// Celular: no máximo 5 itens na barra inferior.
+// Celular: no máximo 5 itens na barra inferior; o que estiver em `noMais` some
+// da barra e aparece dentro de "Mais" (no computador, fica no menu lateral).
 export const MENUS = {
-  Engenheiro: { inicio: 'frentes', itens: ['frentes', 'diario', 'pendencias', 'fotos', 'mais'] },
-  Mestre:     { inicio: 'diario', itens: ['diario', 'frentes', 'pendencias', 'fotos'] },
-  Arquiteta:  { inicio: 'pendencias', itens: ['pendencias', 'frentes', 'fotos'] },
+  Engenheiro: { inicio: 'frentes', itens: ['frentes', 'diario', 'pendencias', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['materiais', 'planejamento'] },
+  Mestre:     { inicio: 'diario', itens: ['diario', 'frentes', 'pendencias', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['materiais', 'planejamento'] },
+  Arquiteta:  { inicio: 'pendencias', itens: ['pendencias', 'frentes', 'fotos', 'materiais', 'planejamento'] },
   Cliente:    { inicio: 'painel', itens: ['painel'] },
+}
+
+// O que vai na barra inferior do celular (sem o que mora dentro de "Mais").
+export function itensDaBarra(role) {
+  const { itens, noMais = [] } = MENUS[role]
+  return itens.filter((id) => !noMais.includes(id))
 }
 
 // Obras que aparecem no seletor: Concluída sai; Parada continua (decisão de 20/10).
