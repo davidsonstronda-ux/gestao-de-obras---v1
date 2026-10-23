@@ -54,6 +54,7 @@ export const mockEmpreiteiros = [
   { id: 'e6', obra_id: 'o1', nome: 'Pinturas Lima', especialidade: 'Pintura e alvenaria', whatsapp: '21900000006' },
   { id: 'e7', obra_id: 'o1', nome: 'Marcenaria Oliveira', especialidade: 'Marcenaria', whatsapp: '21900000007' },
   { id: 'e8', obra_id: 'o1', nome: 'Vidraçaria Luz', especialidade: 'Esquadrias de vidro', whatsapp: '21900000008' },
+  { id: 'e10', obra_id: 'o1', nome: 'Drywall Prime', especialidade: 'Drywall e forros', whatsapp: '21900000010' },
   { id: 'e9', obra_id: 'o2', nome: 'Fundações Base', especialidade: 'Fundação', whatsapp: '11900000009' },
 ]
 
@@ -68,13 +69,14 @@ export const mockFrentes = [
   { id: 'f8', obra_id: 'o1', empreiteiro_id: 'e7', servico: 'Marcenaria cozinha', inicio_previsto: '2026-11-10', termino_previsto: '2026-12-15', folga_dias: 15, situacao: 'Não iniciada', concluida_em: null },
   { id: 'f9', obra_id: 'o1', empreiteiro_id: 'e8', servico: 'Esquadrias de vidro', inicio_previsto: '2026-11-03', termino_previsto: '2026-11-28', folga_dias: 10, situacao: 'Não iniciada', concluida_em: null },
   { id: 'f10', obra_id: 'o1', empreiteiro_id: 'e6', servico: 'Pintura fachada', inicio_previsto: '2026-10-01', termino_previsto: '2026-10-30', folga_dias: 3, situacao: 'Em andamento', concluida_em: null },
+  { id: 'f12', obra_id: 'o1', empreiteiro_id: 'e10', servico: 'Drywall e tabicas', inicio_previsto: '2026-09-08', termino_previsto: '2026-10-17', folga_dias: 6, situacao: 'Concluída', concluida_em: '2026-10-16' },
   { id: 'f11', obra_id: 'o2', empreiteiro_id: 'e9', servico: 'Fundação', inicio_previsto: '2026-10-01', termino_previsto: '2026-11-15', folga_dias: 10, situacao: 'Em andamento', concluida_em: null },
 ]
 
 // Só o engenheiro lê esta tabela (separada de frentes por causa disso).
 export const mockContratos = [
   { id: 'c1', obra_id: 'o1', frente_id: 'f1', valor_contratado: 38500 },
-  { id: 'c2', obra_id: 'o1', frente_id: 'f2', valor_contratado: 21300 },
+  { id: 'c2', obra_id: 'o1', frente_id: 'f2', valor_contratado: 30000 },
   { id: 'c3', obra_id: 'o1', frente_id: 'f3', valor_contratado: 62000 },
   { id: 'c4', obra_id: 'o1', frente_id: 'f4', valor_contratado: 33900 },
   { id: 'c5', obra_id: 'o1', frente_id: 'f5', valor_contratado: 54200 },
@@ -83,6 +85,8 @@ export const mockContratos = [
   { id: 'c8', obra_id: 'o1', frente_id: 'f8', valor_contratado: 47500 },
   { id: 'c9', obra_id: 'o1', frente_id: 'f9', valor_contratado: 39800 },
   { id: 'c10', obra_id: 'o1', frente_id: 'f10', valor_contratado: 27800 },
+  // Drywall: 200 m² de placas × R$ 80 + 200 m² de juntas × R$ 40 + 50 m de tabica × R$ 120.
+  { id: 'c12', obra_id: 'o1', frente_id: 'f12', valor_contratado: 30000 },
   { id: 'c11', obra_id: 'o2', frente_id: 'f11', valor_contratado: 96000 },
 ]
 
@@ -94,6 +98,10 @@ export const mockMedicoes = [
   { id: 'md2', obra_id: 'o1', empreiteiro_id: 'e1', periodo_inicio: '2026-09-15', periodo_fim: '2026-10-05', situacao: 'Fechada', fechada_em: '2026-10-06T10:00:00', created_at: '2026-10-06T09:40:00' },
   { id: 'md3', obra_id: 'o1', empreiteiro_id: 'e4', periodo_inicio: '2026-09-22', periodo_fim: '2026-10-10', situacao: 'Fechada', fechada_em: '2026-10-13T08:15:00', created_at: '2026-10-13T08:00:00' },
   { id: 'md4', obra_id: 'o1', empreiteiro_id: 'e1', periodo_inicio: '2026-10-06', periodo_fim: '2026-10-20', situacao: 'Rascunho', fechada_em: null, created_at: '2026-10-20T07:50:00' },
+  // Drywall: duas medições fechadas (Sala, depois Cozinha); a Suíte, concluída em 16/10, está a medir.
+  { id: 'md6', obra_id: 'o1', empreiteiro_id: 'e10', periodo_inicio: '2026-09-08', periodo_fim: '2026-09-30', situacao: 'Fechada', fechada_em: '2026-10-01T10:00:00', created_at: '2026-10-01T09:45:00' },
+  { id: 'md7', obra_id: 'o1', empreiteiro_id: 'e10', periodo_inicio: '2026-10-01', periodo_fim: '2026-10-10', situacao: 'Fechada', fechada_em: '2026-10-13T09:00:00', created_at: '2026-10-13T08:40:00' },
+  { id: 'md8', obra_id: 'o1', empreiteiro_id: 'e3', periodo_inicio: '2026-10-06', periodo_fim: '2026-10-20', situacao: 'Rascunho', fechada_em: null, created_at: '2026-10-20T08:10:00' },
   { id: 'md5', obra_id: 'o2', empreiteiro_id: 'e9', periodo_inicio: '2026-10-01', periodo_fim: '2026-10-15', situacao: 'Fechada', fechada_em: '2026-10-16T11:00:00', created_at: '2026-10-16T10:30:00' },
 ]
 
@@ -105,6 +113,9 @@ export const mockMedicaoItens = [
   { id: 'mi5', obra_id: 'o1', medicao_id: 'md3', frente_id: 'f4', valor_sugerido: 6780, valor: 8000, justificativa: 'Passagem de fios do pavimento inteiro já feita; combinado adiantar.' },
   { id: 'mi6', obra_id: 'o1', medicao_id: 'md4', frente_id: 'f3', valor_sugerido: 15500, valor: 15500, justificativa: null },
   { id: 'mi7', obra_id: 'o1', medicao_id: 'md4', frente_id: 'f6', valor_sugerido: 0, valor: 0, justificativa: null },
+  { id: 'mi9', obra_id: 'o1', medicao_id: 'md6', frente_id: 'f12', valor_sugerido: 10000, valor: 10000, justificativa: null },
+  { id: 'mi10', obra_id: 'o1', medicao_id: 'md7', frente_id: 'f12', valor_sugerido: 10000, valor: 10000, justificativa: null },
+  { id: 'mi11', obra_id: 'o1', medicao_id: 'md8', frente_id: 'f2', valor_sugerido: 10000, valor: 10000, justificativa: null },
   { id: 'mi8', obra_id: 'o2', medicao_id: 'md5', frente_id: 'f11', valor_sugerido: 0, valor: 19200, justificativa: 'Mobilização do canteiro: 20% na assinatura, previsto no contrato.' },
 ]
 
@@ -124,6 +135,7 @@ export const mockFrenteAmbientes = [
   fa('x27', 'f8', 'a2'), fa('x28', 'f8', 'a3'),
   fa('x29', 'f9', 'a1'), fa('x30', 'f9', 'a3'), fa('x31', 'f9', 'a6'),
   fa('x32', 'f10', 'a6'),
+  fa('x35', 'f12', 'a1', '2026-09-26'), fa('x36', 'f12', 'a2', '2026-10-07'), fa('x37', 'f12', 'a3', '2026-10-16'),
   fa('x33', 'f11', 'a7'), fa('x34', 'f11', 'a8'),
 ]
 

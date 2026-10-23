@@ -67,10 +67,13 @@ await dados.entrarComo('u1')
 conferir('sem obra escolhida não lista medição', (await dados.listarMedicao()).erro, 'Nenhuma obra selecionada.')
 dados.definirContexto({ obraId: 'o1' })
 const o1 = (await dados.listarMedicao()).data
-conferir('obra 1: totais', o1.totais, { contratado: 384600, medido: 64500, aMedir: 39005, saldo: 320100, pct: 16 })
-conferir('obra 1: quem tem a medir vem primeiro', o1.empreiteiros.map((e) => e.nome).slice(0, 4), ['Elétrica Ramos', 'Gesso & Cia', 'Hidro Sul', 'ImperTec'])
+conferir('obra 1: totais', o1.totais, { contratado: 423300, medido: 84500, aMedir: 51905, saldo: 338800, pct: 19 })
+conferir('obra 1: quem tem a medir vem primeiro', o1.empreiteiros.map((e) => e.nome).slice(0, 5), ['Drywall Prime', 'Elétrica Ramos', 'Gesso & Cia', 'Hidro Sul', 'ImperTec'])
 conferir('obra 1: rascunho não conta no medido da Hidro Sul', o1.empreiteiros.find((e) => e.id === 'e1').medido, 15500)
-conferir('obra 1: histórico numerado, mais recente primeiro', o1.historico.map((m) => `${m.empreiteiro_id}#${m.numero}`), ['e1#2', 'e4#1', 'e1#1', 'e6#1'])
+const drywall = o1.empreiteiros.find((e) => e.id === 'e10')
+conferir('drywall: 2 de 3 ambientes medidos, a Suíte a medir', [drywall.contratado, drywall.medido, drywall.pct, drywall.aMedir, drywall.saldo], [30000, 20000, 66, 10000, 10000])
+conferir('gesso: R$ 30.000 com rascunho que ainda não conta', [o1.empreiteiros.find((e) => e.id === 'e3').contratado, o1.empreiteiros.find((e) => e.id === 'e3').medido, o1.empreiteiros.find((e) => e.id === 'e3').rascunho], [30000, 0, 1])
+conferir('obra 1: histórico numerado, mais recente primeiro', o1.historico.map((m) => `${m.empreiteiro_id}#${m.numero}`), ['e1#2', 'e3#1', 'e10#2', 'e4#1', 'e1#1', 'e6#1', 'e10#1'])
 dados.definirContexto({ obraId: 'o2' })
 const o2 = (await dados.listarMedicao()).data
 conferir('obra 2: só o empreiteiro dela', o2.empreiteiros.map((e) => e.id), ['e9'])
@@ -129,29 +132,33 @@ dados.definirContexto({ obraId: 'o1' })
 const fHidro = (await dados.fichaMedicao({ empreiteiroId: 'e1' })).data
 conferir('empreiteiro com rascunho abre o rascunho', [fHidro.medicao.id, fHidro.numero, fHidro.editavel], ['md4', 2, true])
 conferir('rascunho: medido antes vem só da fechada', fHidro.frentes.find((f) => f.frente_id === 'f3').jaMedido, 15500)
-const fGesso = (await dados.fichaMedicao({ empreiteiroId: 'e3' })).data
-conferir('sem medição: nova nº 1 com período padrão', [fGesso.medicao, fGesso.numero, fGesso.periodo], [null, 1, { inicio: '2026-10-06', fim: HOJE }])
+conferir('gesso abre o rascunho dele', (await dados.fichaMedicao({ empreiteiroId: 'e3' })).data.medicao.id, 'md8')
+const fImper = (await dados.fichaMedicao({ empreiteiroId: 'e2' })).data
+conferir('sem medição: nova nº 1 com período padrão', [fImper.medicao, fImper.numero, fImper.periodo], [null, 1, { inicio: '2026-10-01', fim: HOJE }])
+const fDry = (await dados.fichaMedicao({ empreiteiroId: 'e10' })).data
+conferir('drywall: nova nº 3, começa depois da última fechada', [fDry.numero, fDry.periodo.inicio, fDry.frentes[0].jaMedido], [3, '2026-10-11', 20000])
 conferir('fechada abre só para leitura', (await dados.fichaMedicao({ medicaoId: 'md3' })).data.editavel, false)
 conferir('medição de outra obra não abre', (await dados.fichaMedicao({ medicaoId: 'md5' })).erro, 'Medição não encontrada nesta obra.')
 
-const gesso = (valor, extra = {}) => ({ empreiteiro_id: 'e3', periodo_inicio: '2026-10-06', periodo_fim: HOJE, itens: [{ frente_id: 'f2', valor, ...extra }] })
-conferir('camada de dados também trava em 100%', (await dados.salvarMedicao(gesso(30000))).erro, `Passa de 100% do contratado: sobram ${formatarDinheiro(21300)} para medir.`)
-const salvo = (await dados.salvarMedicao(gesso(7100))).data
+// ImperTec: R$ 38.500, Banho social concluído em 09/10 (1 de 4 ambientes) → sugerido R$ 9.625.
+const imper = (valor, extra = {}) => ({ empreiteiro_id: 'e2', periodo_inicio: '2026-10-01', periodo_fim: HOJE, itens: [{ frente_id: 'f1', valor, ...extra }] })
+conferir('camada de dados também trava em 100%', (await dados.salvarMedicao(imper(40000))).erro, `Passa de 100% do contratado: sobram ${formatarDinheiro(38500)} para medir.`)
+const salvo = (await dados.salvarMedicao(imper(9625))).data
 conferir('salva como rascunho', salvo.situacao, 'Rascunho')
-conferir('rascunho não conta no medido', (await dados.listarMedicao()).data.empreiteiros.find((e) => e.id === 'e3').medido, 0)
-conferir('segundo rascunho do mesmo empreiteiro é recusado', (await dados.salvarMedicao(gesso(7100))).erro, 'Este empreiteiro já tem uma medição em rascunho. Continue por ela.')
-const fechada = (await dados.salvarMedicao({ ...gesso(7100), id: salvo.id }, { fechar: true })).data
+conferir('rascunho não conta no medido', (await dados.listarMedicao()).data.empreiteiros.find((e) => e.id === 'e2').medido, 0)
+conferir('segundo rascunho do mesmo empreiteiro é recusado', (await dados.salvarMedicao(imper(9625))).erro, 'Este empreiteiro já tem uma medição em rascunho. Continue por ela.')
+const fechada = (await dados.salvarMedicao({ ...imper(9625), id: salvo.id }, { fechar: true })).data
 conferir('fechar grava a data', [fechada.situacao, Boolean(fechada.fechada_em)], ['Fechada', true])
-const gessoDepois = (await dados.listarMedicao()).data.empreiteiros.find((e) => e.id === 'e3')
-conferir('fechada entra no medido e zera o a medir', [gessoDepois.medido, gessoDepois.aMedir, gessoDepois.pct], [7100, 0, 33])
-conferir('fechada não muda mais', (await dados.salvarMedicao({ ...gesso(7100), id: salvo.id })).erro, 'Medição fechada não muda mais.')
+const imperDepois = (await dados.listarMedicao()).data.empreiteiros.find((e) => e.id === 'e2')
+conferir('fechada entra no medido e zera o a medir', [imperDepois.medido, imperDepois.aMedir, imperDepois.pct], [9625, 0, 25])
+conferir('fechada não muda mais', (await dados.salvarMedicao({ ...imper(9625), id: salvo.id })).erro, 'Medição fechada não muda mais.')
 conferir('fechada não pode ser apagada', (await dados.apagarRascunhoMedicao('md1')).erro, 'Medição fechada não pode ser apagada.')
 conferir('rascunho pode ser apagado', [(await dados.apagarRascunhoMedicao('md4')).data, (await dados.listarMedicao()).data.historico.some((m) => m.id === 'md4')], ['md4', false])
 dados.definirContexto({ obraId: 'o2' })
-conferir('não mede empreiteiro de outra obra', (await dados.salvarMedicao(gesso(100))).erro, 'Empreiteiro não encontrado nesta obra.')
+conferir('não mede empreiteiro de outra obra', (await dados.salvarMedicao(imper(100))).erro, 'Empreiteiro não encontrado nesta obra.')
 await dados.entrarComo('u2')
 dados.definirContexto({ obraId: 'o1' })
-conferir('mestre não lança medição', (await dados.salvarMedicao(gesso(100))).erro, 'Só o engenheiro lança medição.')
+conferir('mestre não lança medição', (await dados.salvarMedicao(imper(100))).erro, 'Só o engenheiro lança medição.')
 
 console.log(`${ok}/${tot} — medicao`)
 process.exit(ok === tot ? 0 : 1)
