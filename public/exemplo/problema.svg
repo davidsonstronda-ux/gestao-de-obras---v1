@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Foto de exemplo (dados de demonstração): parede com mancha e trinca. -->
+  <rect width="400" height="300" fill="#C9A27E"/>
+  <g stroke="#B08560" stroke-width="3">
+    <path d="M0 75H400M0 150H400M0 225H400"/>
+    <path d="M100 0V75M300 0V75M0 75M200 75V150M50 150V225M250 150V225M150 225V300M350 225V300"/>
+  </g>
+  <ellipse cx="230" cy="170" rx="95" ry="60" fill="#7A6A55" opacity=".55"/>
+  <path d="M140 40l30 50-20 30 40 50-15 40 30 60" fill="none" stroke="#3B2F25" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="12" y="262" width="150" height="26" rx="4" fill="#000" opacity=".55"/>
+  <text x="22" y="281" font-family="sans-serif" font-size="15" fill="#fff">Foto de exemplo</text>
+</svg>

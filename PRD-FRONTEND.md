@@ -33,9 +33,11 @@ Um sistema de acompanhamento de frentes de serviço que responde toda manhã "a 
 Login · Criar conta · Aguardando liberação
 └── Engenheiro: Frentes em risco · Diário · Pendências · Fotos · Materiais · Planejamento · Cadastros (Obras, Frentes e cronograma, Empreiteiros e ambientes, Equipe)
 └── Mestre:     Diário do dia · Frentes · Pendências · Fotos · Materiais · Planejamento (só Curto prazo)
-└── Arquiteta:  Pendências · Frentes · Fotos · Materiais · Planejamento (só vê)
+└── Arquiteta:  Pendências · Frentes · Fotos · Materiais · Planejamento (só vê) · Qualidade (só vê)
 └── Cliente:    Painel da obra
 ```
+
+- Qualidade (acrescentada em 23/10) entra no menu do engenheiro, do mestre e da arquiteta; no celular fica dentro de "Mais". A arquiteta ganhou "Mais" (Materiais, Planejamento, Qualidade) e a barra dela fica **Pendências · Frentes · Fotos · Mais**.
 
 - Barra inferior do engenheiro no celular: **Frentes · Diário · Pendências · Fotos · Mais** ("Mais" abre Cadastros).
 - Barra inferior do mestre no celular (desde 21/10, quando entrou o Planejamento): **Diário · Frentes · Pendências · Fotos · Mais** ("Mais" abre Materiais e Planejamento).
@@ -535,6 +537,70 @@ Usuários de exemplo:
 ## A conta que vai chegar depois
 
 - `[PENDENTE: formato do arquivo exportado do MS Project]` — custo: a importação pode precisar de ajuste de colunas na construção.
+
+## Tela: Qualidade (Vistoria · FVS · Gemba Walk) — acrescentada em 23/10
+
+**Quem acessa:** Engenheiro (tudo), Mestre (registra e anda com os itens), Arquiteta (só vê). Cliente não.
+**Chega aqui por:** menu Qualidade (no celular, dentro de "Mais").
+**Abas no cabeçalho:** Vistoria · FVS · Gemba Walk. Botão **Relatório** abre a visão de impressão (etapa 4).
+
+### Aba Vistoria
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| Foto do problema | foto | não | câmera direto no celular; prévia local |
+| Descrição | texto longo | sim | |
+| Local | texto | sim | ex.: "Banho social" |
+| Pavimento | texto | não | |
+| Empresa que corrige | escolha | sim | empreiteiros da obra |
+| Responsável que acompanha | escolha | sim | equipe da obra que vê a Qualidade (engenheiro, mestre ou arquiteta) |
+| Prazo | data | sim | nasce com hoje; não pode ser antes da vistoria |
+| Observação inicial | texto longo | não | entra no histórico com carimbo |
+
+- Número (#1, #2…), data da vistoria e quem vistoriou são automáticos.
+- **Topo:** 4 indicadores com faixa colorida (Total neutro · Pendentes vermelho · Em andamento âmbar · Resolvidos verde); tocar filtra. Depois, "Pendentes por responsável" em etiquetas, maior primeiro, rolando de lado no celular.
+- **Filtros:** busca (descrição, local, pavimento ou nº), situação, responsável, prazo (Todos · Atrasados · Hoje · Esta semana).
+- **Cartões** (1 coluna no celular, 2–3 no computador): nº + situação, foto grande, descrição em até 2 linhas, empresa, responsável e prazo. Selo vermelho **Vencido** quando o prazo passou e não está resolvido. Resolvido fica acinzentado.
+- **Detalhe (tocar no cartão):** fotos (problema e evidência), todos os dados, histórico de observações, campo "Adicionar observação" (a qualquer momento), botões **Colocar em andamento** e **Resolver**. Resolver pede a **foto de evidência** (obrigatória) e grava a data. Engenheiro: **Excluir**, com confirmação.
+- **Novo:** botão redondo de câmera no canto (celular) ou "Novo registro" (computador).
+- **Vazio:** "Nenhum registro de vistoria nesta obra" + "Fotografar o primeiro problema".
+
+### Aba FVS
+
+- **Topo:** 3 indicadores (% conforme geral · NCs em aberto · Vistorias concluídas) e o seletor **Vistorias · Não conformidades · Modelos**.
+- **Vistorias:** lista com modelo (código e nome), ambiente, mini barra de progresso, % de conformidade e situação (Em andamento âmbar · Concluída verde). Botão **Nova vistoria** (engenheiro e mestre): modelo (escolha) e ambiente (texto), ambos obrigatórios.
+- **Ficha da vistoria** (abre no lugar da lista, com "← Vistorias"): barra de progresso em cores, "X de Y itens verificados", % de conformidade (— enquanto não houver OK nem NC). Grupos numerados, itens 1.1, 1.2… com três botões **OK · NC · N.A.** Item com NC mostra a etiqueta da NC (NC-003). **Finalizar vistoria** desabilitado com "Faltam N itens"; concluída mostra o selo "✓ Concluída" e trava tudo. Arquiteta vê sem mexer.
+- **Painel da NC** (ao tocar NC): item (título), fotos (várias, prévia local), descrição do problema*, solução proposta, severidade* (Baixa · Média · Alta), empresa responsável pela correção* (empreiteiros da obra). Cancelar não marca o item.
+- **Não conformidades:** filtro Em aberto (padrão) · Fechadas · Todas. Linha: código, título, modelo · ambiente, severidade (Alta vermelho · Média âmbar · Baixa neutro), empresa, dias em aberto, situação. Detalhe: fotos, descrição, solução, linha do tempo e os botões do próximo passo conforme o perfil. Reprovar pede o motivo.
+- **Modelos:** lista com código, nome, categoria, versão e nº de itens. Engenheiro: **Novo modelo** e editar (nome*, categoria*, grupos com nome* e itens*; adicionar/remover grupo e item; remover grupo com itens pede confirmação). Outros perfis veem os itens sem editar.
+- **Vazios:** "Nenhuma vistoria de FVS nesta obra" + "Começar a primeira vistoria"; "Nenhuma não conformidade aqui"; "Nenhum modelo de FVS" + "Criar o primeiro modelo".
+
+### Aba Gemba Walk
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| Local | texto | sim | |
+| Descrição | texto longo | sim | o que se viu |
+| Causa raiz | texto longo | sim | |
+| Ação | texto longo | sim | o que será feito |
+| Desperdícios | vários (etiquetas coloridas) | sim, 1 ou mais | os 7 tipos |
+| Responsável | escolha | sim | engenheiro ou mestre da obra |
+| Prazo | data | não | nasce com hoje; pode apagar; não pode ser antes de hoje |
+| Foto | foto | não | câmera direto no celular |
+
+- **Topo:** "Onde a obra mais perde": ranking dos 7 tipos em barras, maior primeiro, com a contagem; tocar num tipo filtra.
+- **Filtros:** busca, tipo de desperdício, prazo (Todos · Vencidos · Hoje · Esta semana · Sem prazo). Botão **Nova observação**.
+- **Quadro:** Pendente · Em andamento · Resolvido, com a contagem em cada coluna; no celular empilha. Cartão conforme o plano; lista "Situação" para mover (engenheiro e mestre). Tocar no cartão abre o detalhe com causa raiz e ação; engenheiro exclui com confirmação.
+- **Vazio:** "Nenhuma observação de Gemba nesta obra" + "Registrar a primeira observação".
+
+### Relatório imprimível
+
+- **Abre por:** botão **Relatório** no fim da linha das abas (engenheiro, mestre e arquiteta). Os filtros de cada aba (Vistoria: situação, responsável, prazo, busca; FVS: Em aberto / Fechadas / Todas; Gemba: tipo, prazo, busca) ficam guardados na tela de Qualidade e o relatório usa os mesmos.
+- **Barra (não sai no papel):** "← Voltar" e **Imprimir** (abre a impressão do navegador; dá para salvar em PDF).
+- **Papel:** conteúdo conforme o plano, fonte ~12px, cores das etiquetas mantidas, registro e linhas de tabela sem quebrar no meio, margens de 12 mm.
+- **Estados:** carregando; erro com "Tentar de novo"; seção sem nada mostra "Nada com os filtros aplicados." em vez de sumir.
+
+---
 
 ## Decidir depois de usar
 

@@ -28,6 +28,10 @@ const MATRIZ = {
   verCurtoPrazo:       ['Engenheiro', 'Mestre', 'Arquiteta'],
   moverCurtoPrazo:     ['Engenheiro', 'Mestre'],
   medir:               ['Engenheiro'],
+  verQualidade:        ['Engenheiro', 'Mestre', 'Arquiteta'],
+  registrarQualidade:  ['Engenheiro', 'Mestre'],
+  editarModeloFvs:     ['Engenheiro'],
+  aprovarNc:           ['Engenheiro'],
 }
 
 export function pode(role, acao) {
@@ -44,9 +48,10 @@ export function abasDoPlanejamento(role) {
 // Celular: no máximo 5 itens na barra inferior; o que estiver em `noMais` some
 // da barra e aparece dentro de "Mais" (no computador, fica no menu lateral).
 export const MENUS = {
-  Engenheiro: { inicio: 'frentes', itens: ['frentes', 'diario', 'pendencias', 'medicao', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['fotos', 'materiais', 'planejamento'] },
-  Mestre:     { inicio: 'diario', itens: ['diario', 'frentes', 'pendencias', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['materiais', 'planejamento'] },
-  Arquiteta:  { inicio: 'pendencias', itens: ['pendencias', 'frentes', 'fotos', 'materiais', 'planejamento'] },
+  Engenheiro: { inicio: 'frentes', itens: ['frentes', 'diario', 'pendencias', 'medicao', 'fotos', 'materiais', 'planejamento', 'qualidade', 'mais'], noMais: ['fotos', 'materiais', 'planejamento', 'qualidade'] },
+  Mestre:     { inicio: 'diario', itens: ['diario', 'frentes', 'pendencias', 'fotos', 'materiais', 'planejamento', 'qualidade', 'mais'], noMais: ['materiais', 'planejamento', 'qualidade'] },
+  // A arquiteta ganhou "Mais" quando entrou a Qualidade (23/10): a barra só cabe 5.
+  Arquiteta:  { inicio: 'pendencias', itens: ['pendencias', 'frentes', 'fotos', 'materiais', 'planejamento', 'qualidade', 'mais'], noMais: ['materiais', 'planejamento', 'qualidade'] },
   Cliente:    { inicio: 'painel', itens: ['painel'] },
 }
 

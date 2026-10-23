@@ -26,6 +26,12 @@ import {
   arredondarCentavos, difereDoSugerido, fimDaUltimaFechada, numerarMedicoes, ordenarEmpreiteiros, ordenarHistorico, periodoPadrao, resumoFrente,
   somarResumos, sugeridoNoPeriodo, totalDaMedicao, validarMedicao,
 } from './medicao.js'
+import { anexarObservacao, mudancaDeSituacao, ordenarRegistros, proximoNumero, validarMudancaRegistro, validarRegistro } from './qualidade.js'
+import {
+  codigoNc, diasEmAberto, ordenarNcs, ordenarVistorias, progressoVistoria, proximoCodigoModelo, proximoNumeroNc, resumoFvs, textoDoPasso, todosOsItens,
+  validarFinalizar, validarModelo, validarNc, validarNovaVistoria, validarPassoNc, validarResposta,
+} from './fvs.js'
+import { ordenarObservacoes, validarMudancaGemba, validarObservacao } from './gemba.js'
 
 // Cópia de trabalho: as telas podem criar e editar sem estragar o original.
 const db = structuredClone({
@@ -37,6 +43,9 @@ const db = structuredClone({
   pedido_historico: mock.mockPedidoHistorico, insumos: mock.mockInsumos, movimentos: mock.mockMovimentos,
   calendarios: mock.mockCalendarios, feriados: mock.mockFeriados, atividades: mock.mockAtividades,
   restricoes: mock.mockRestricoes, subtarefas: mock.mockSubtarefas, nao_realizados: mock.mockNaoRealizados,
+  vistoria_registros: mock.mockVistoriaRegistros,
+  fvs_modelos: mock.mockFvsModelos, fvs_vistorias: mock.mockFvsVistorias, fvs_ncs: mock.mockFvsNcs,
+  gemba_observacoes: mock.mockGembaObservacoes,
   medicoes: mock.mockMedicoes, medicao_itens: mock.mockMedicaoItens,
 })
 
@@ -1019,6 +1028,301 @@ export async function apagarRascunhoMedicao(id) {
   if (m.situacao !== 'Rascunho') return falha('Medição fechada não pode ser apagada.')
   db.medicoes = db.medicoes.filter((x) => x.id !== id)
   db.medicao_itens = db.medicao_itens.filter((i) => i.medicao_id !== id)
+  return ok(id)
+}
+
+// ── qualidade: aba Vistoria ─────────────────────────────────────────────────
+// Registros de problema achado na obra, até a correção com foto de evidência.
+// As regras (nº, prazo, passo de situação, observações) moram em lib/qualidade.js.
+function montarRegistro(r) {
+  return {
+    ...r,
+    empresa: db.empreiteiros.find((e) => e.id === r.empreiteiro_id)?.nome || '—',
+    responsavel: nomePessoa(r.responsavel_id),
+    vistoriador: nomePessoa(r.vistoriado_por),
+  }
+}
+// Quem da obra pode ser o responsável. Na Vistoria, quem vê a Qualidade
+// (inclusive a arquiteta, decisão de 23/10); no Gemba, só quem registra.
+function equipeDaQualidade(obraId, acao) {
+  return db.membros.filter((m) => m.obra_id === obraId)
+    .map((m) => db.profiles.find((p) => p.id === m.pessoa_id))
+    .filter((p) => p?.ativo && pode(p.role, acao))
+}
+
+// Os registros da obra e as listas que o formulário precisa (empresas e equipe).
+export async function listarVistoria() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verQualidade')) return falha('Sem permissão.')
+  return ok({
+    registros: ordenarRegistros(daObra('vistoria_registros', obraId).map(montarRegistro), hoje()),
+    empreiteiros: daObra('empreiteiros', obraId).map((e) => ({ id: e.id, nome: e.nome })),
+    pessoas: equipeDaQualidade(obraId, 'verQualidade').map((p) => ({ id: p.id, nome: p.nome })),
+  })
+}
+
+export async function criarRegistroVistoria({ descricao, local, pavimento = '', empreiteiro_id, responsavel_id, prazo, foto = '', observacao = '' }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para registrar.')
+  const problemas = Object.values(validarRegistro({ descricao, local, empreiteiro_id, responsavel_id, prazo, data_vistoria: hoje() }, hoje()))
+  if (problemas.length) return falha(problemas.join(' '))
+  if (!daObra('empreiteiros', obraId).some((e) => e.id === empreiteiro_id)) return falha('Empresa não encontrada nesta obra.')
+  if (!equipeDaQualidade(obraId, 'verQualidade').some((p) => p.id === responsavel_id)) return falha('O responsável precisa ser da equipe desta obra.')
+  const r = {
+    id: novoId('vr'), obra_id: obraId, numero: proximoNumero(daObra('vistoria_registros', obraId)),
+    descricao: descricao.trim(), local: local.trim(), pavimento: pavimento.trim(), empreiteiro_id, responsavel_id, prazo,
+    data_vistoria: hoje(), vistoriado_por: contexto.perfil.id, status: 'Pendente', foto, foto_evidencia: '', resolvido_em: null,
+    observacoes: observacao.trim() ? anexarObservacao('', observacao, agora()) : '',
+  }
+  db.vistoria_registros.push(r)
+  return ok(montarRegistro(r))
+}
+
+// Um passo à frente (Pendente -> Em andamento -> Resolvido). Resolver exige a
+// foto da correção e grava a data. A mudança também entra nas observações.
+export async function moverRegistroVistoria(id, novoStatus, { foto_evidencia = '' } = {}) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para mudar a situação.')
+  const r = daObra('vistoria_registros', obraId).find((x) => x.id === id)
+  if (!r) return falha('Registro não encontrado nesta obra.')
+  const problemas = Object.values(validarMudancaRegistro(r.status, novoStatus, { foto_evidencia }))
+  if (problemas.length) return falha(problemas.join(' '))
+  Object.assign(r, mudancaDeSituacao(novoStatus, { foto_evidencia }, hoje()))
+  r.observacoes = anexarObservacao(r.observacoes, `${novoStatus} — por ${contexto.perfil.nome}.`, agora())
+  return ok(montarRegistro(r))
+}
+
+export async function anotarRegistroVistoria(id, texto) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para anotar.')
+  if (!String(texto || '').trim()) return falha('Escreva a observação.')
+  const r = daObra('vistoria_registros', obraId).find((x) => x.id === id)
+  if (!r) return falha('Registro não encontrado nesta obra.')
+  r.observacoes = anexarObservacao(r.observacoes, texto, agora())
+  return ok(montarRegistro(r))
+}
+
+export async function excluirRegistroVistoria(id) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'apagar')) return falha('Só o engenheiro exclui registro.')
+  if (!daObra('vistoria_registros', obraId).some((x) => x.id === id)) return falha('Registro não encontrado nesta obra.')
+  db.vistoria_registros = db.vistoria_registros.filter((x) => x.id !== id)
+  return ok(id)
+}
+
+// ── qualidade: aba FVS ──────────────────────────────────────────────────────
+// Modelos são da empresa (sem obra_id); vistorias e NCs são da obra. As regras
+// (numeração, %, passos da NC) moram em lib/fvs.js.
+function montarVistoriaFvs(v) {
+  return { ...v, progresso: progressoVistoria(v.grupos, v.respostas), criador: nomePessoa(v.criada_por) }
+}
+function montarNc(n) {
+  const v = db.fvs_vistorias.find((x) => x.id === n.vistoria_id)
+  return {
+    ...n,
+    codigo: codigoNc(n.numero),
+    empresa: db.empreiteiros.find((e) => e.id === n.empreiteiro_id)?.nome || '—',
+    ambiente: v?.ambiente || '—',
+    modelo_codigo: v?.modelo_codigo || '—',
+    modelo_nome: v?.modelo_nome || '—',
+    diasEmAberto: diasEmAberto(n, hoje()),
+  }
+}
+
+// Tudo da aba numa leitura: vistorias, NCs, modelos, empresas e os indicadores.
+export async function listarFvs() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verQualidade')) return falha('Sem permissão.')
+  const vistorias = daObra('fvs_vistorias', obraId)
+  const ncs = daObra('fvs_ncs', obraId)
+  return ok({
+    vistorias: ordenarVistorias(vistorias.map(montarVistoriaFvs)),
+    ncs: ordenarNcs(ncs.map(montarNc)),
+    modelos: db.fvs_modelos.map((m) => ({ ...m, totalItens: todosOsItens(m.grupos).length })).sort((a, b) => a.codigo.localeCompare(b.codigo)),
+    empreiteiros: daObra('empreiteiros', obraId).map((e) => ({ id: e.id, nome: e.nome })),
+    resumo: resumoFvs(vistorias, ncs),
+  })
+}
+
+// Criar ou editar modelo (só engenheiro). Editar sobe a versão; as vistorias já
+// abertas ficam com a cópia antiga.
+export async function salvarModeloFvs({ id, nome, categoria, grupos = [] }) {
+  await espera()
+  if (!contexto.perfil) return falha('Faça login para continuar.')
+  if (!pode(role(), 'editarModeloFvs')) return falha('Só o engenheiro cria ou edita modelo de FVS.')
+  const problemas = Object.values(validarModelo({ nome, categoria, grupos }))
+  if (problemas.length) return falha(problemas.join(' '))
+  const limpos = grupos.map((g) => ({ nome: g.nome.trim(), itens: g.itens.map((i) => ({ id: i.id || novoId('fi'), titulo: i.titulo.trim() })) }))
+  if (id) {
+    const m = db.fvs_modelos.find((x) => x.id === id)
+    if (!m) return falha('Modelo não encontrado.')
+    Object.assign(m, { nome: nome.trim(), categoria, grupos: limpos, versao: m.versao + 1 })
+    return ok({ ...m })
+  }
+  const m = { id: novoId('fm'), codigo: proximoCodigoModelo(db.fvs_modelos), nome: nome.trim(), categoria, versao: 1, grupos: limpos }
+  db.fvs_modelos.push(m)
+  return ok({ ...m })
+}
+
+export async function criarVistoriaFvs({ modelo_id, ambiente }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para abrir vistoria.')
+  const problemas = Object.values(validarNovaVistoria({ modelo_id, ambiente }))
+  if (problemas.length) return falha(problemas.join(' '))
+  const m = db.fvs_modelos.find((x) => x.id === modelo_id)
+  if (!m) return falha('Modelo não encontrado.')
+  const v = {
+    id: novoId('fv'), obra_id: obraId, modelo_id: m.id, modelo_codigo: m.codigo, modelo_nome: m.nome, modelo_versao: m.versao,
+    grupos: structuredClone(m.grupos), ambiente: ambiente.trim(), status: 'Em andamento', respostas: {},
+    criada_por: contexto.perfil.id, criada_em: hoje(), concluida_em: null,
+  }
+  db.fvs_vistorias.push(v)
+  return ok(montarVistoriaFvs(v))
+}
+
+function vistoriaDaObra(obraId, id) {
+  return daObra('fvs_vistorias', obraId).find((x) => x.id === id)
+}
+
+// OK ou N.A. num item. NC entra só por registrarNcFvs (que cria a não conformidade).
+export async function responderItemFvs(vistoriaId, itemId, resposta) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para responder a ficha.')
+  const v = vistoriaDaObra(obraId, vistoriaId)
+  if (!v) return falha('Vistoria não encontrada nesta obra.')
+  if (resposta === 'NC') return falha('Para marcar NC, detalhe a não conformidade.')
+  const temNc = daObra('fvs_ncs', obraId).some((n) => n.vistoria_id === v.id && n.item_id === itemId)
+  const problema = validarResposta(v, itemId, resposta, temNc)
+  if (problema) return falha(problema)
+  v.respostas = { ...v.respostas, [itemId]: resposta }
+  return ok(montarVistoriaFvs(v))
+}
+
+// Marca o item como NC e cria a não conformidade ligada a ele, já "Aberta".
+export async function registrarNcFvs(vistoriaId, itemId, { descricao, solucao = '', severidade, empreiteiro_id, fotos = [] }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para abrir não conformidade.')
+  const v = vistoriaDaObra(obraId, vistoriaId)
+  if (!v) return falha('Vistoria não encontrada nesta obra.')
+  const ncs = daObra('fvs_ncs', obraId)
+  const problema = validarResposta(v, itemId, 'NC', ncs.some((n) => n.vistoria_id === v.id && n.item_id === itemId))
+  if (problema) return falha(problema)
+  const problemas = Object.values(validarNc({ descricao, severidade, empreiteiro_id }))
+  if (problemas.length) return falha(problemas.join(' '))
+  if (!daObra('empreiteiros', obraId).some((e) => e.id === empreiteiro_id)) return falha('Empresa não encontrada nesta obra.')
+  const item = todosOsItens(v.grupos).find((i) => i.id === itemId)
+  const n = {
+    id: novoId('nc'), obra_id: obraId, numero: proximoNumeroNc(ncs), vistoria_id: v.id, item_id: itemId, titulo: item.titulo,
+    descricao: descricao.trim(), solucao: solucao.trim(), severidade, empreiteiro_id, fotos: [...fotos],
+    status: 'Aberta', aberta_em: hoje(), fechada_em: null,
+    historico: [{ status: 'Aberta', texto: textoDoPasso(null, 'Aberta', { quem: contexto.perfil.nome }), autor_id: contexto.perfil.id, em: agora() }],
+  }
+  db.fvs_ncs.push(n)
+  v.respostas = { ...v.respostas, [itemId]: 'NC' }
+  return ok({ vistoria: montarVistoriaFvs(v), nc: montarNc(n) })
+}
+
+export async function finalizarVistoriaFvs(vistoriaId) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para finalizar.')
+  const v = vistoriaDaObra(obraId, vistoriaId)
+  if (!v) return falha('Vistoria não encontrada nesta obra.')
+  const problema = validarFinalizar(v)
+  if (problema) return falha(problema)
+  Object.assign(v, { status: 'Concluída', concluida_em: hoje() })
+  return ok(montarVistoriaFvs(v))
+}
+
+// Um passo da NC (ver PASSOS em lib/fvs.js). Cada passo entra na linha do tempo.
+export async function moverNcFvs(ncId, novo, { motivo = '' } = {}) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  const n = daObra('fvs_ncs', obraId).find((x) => x.id === ncId)
+  if (!n) return falha('Não conformidade não encontrada nesta obra.')
+  const problema = validarPassoNc(n.status, novo, { podeMover: pode(role(), 'registrarQualidade'), podeAprovar: pode(role(), 'aprovarNc'), motivo })
+  if (problema) return falha(problema)
+  const empresa = db.empreiteiros.find((e) => e.id === n.empreiteiro_id)?.nome || 'empresa'
+  const texto = textoDoPasso(n.status, novo, { quem: contexto.perfil.nome, empresa, motivo })
+  n.historico = [...n.historico, { status: novo, texto, autor_id: contexto.perfil.id, em: agora() }]
+  n.status = novo
+  n.fechada_em = novo === 'Fechada' ? hoje() : null
+  return ok(montarNc(n))
+}
+
+// ── qualidade: aba Gemba Walk ───────────────────────────────────────────────
+// Observações de desperdício. As regras (tipos, filtros, ranking) moram em lib/gemba.js.
+function montarObservacao(o) {
+  return { ...o, responsavel: nomePessoa(o.responsavel_id) }
+}
+
+export async function listarGemba() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verQualidade')) return falha('Sem permissão.')
+  return ok({
+    observacoes: ordenarObservacoes(daObra('gemba_observacoes', obraId).map(montarObservacao), hoje()),
+    pessoas: equipeDaQualidade(obraId, 'registrarQualidade').map((p) => ({ id: p.id, nome: p.nome })),
+  })
+}
+
+export async function criarObservacaoGemba({ local, descricao, causa_raiz, acao, desperdicios = [], responsavel_id, prazo = '', foto = '' }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para registrar.')
+  const problemas = Object.values(validarObservacao({ local, descricao, causa_raiz, acao, desperdicios, responsavel_id, prazo }, hoje()))
+  if (problemas.length) return falha(problemas.join(' '))
+  if (!equipeDaQualidade(obraId, 'registrarQualidade').some((p) => p.id === responsavel_id)) return falha('O responsável precisa ser da equipe desta obra.')
+  const o = {
+    id: novoId('g'), obra_id: obraId, local: local.trim(), descricao: descricao.trim(), causa_raiz: causa_raiz.trim(), acao: acao.trim(),
+    desperdicios: [...desperdicios], prazo: prazo || null, responsavel_id, status: 'Pendente', foto, criada_em: hoje(), criada_por: contexto.perfil.id,
+  }
+  db.gemba_observacoes.push(o)
+  return ok(montarObservacao(o))
+}
+
+export async function moverObservacaoGemba(id, novoStatus) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'registrarQualidade')) return falha('Sem permissão para mover.')
+  const o = daObra('gemba_observacoes', obraId).find((x) => x.id === id)
+  if (!o) return falha('Observação não encontrada nesta obra.')
+  const problema = validarMudancaGemba(o.status, novoStatus)
+  if (problema) return falha(problema)
+  o.status = novoStatus
+  return ok(montarObservacao(o))
+}
+
+export async function excluirObservacaoGemba(id) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'apagar')) return falha('Só o engenheiro exclui observação.')
+  if (!daObra('gemba_observacoes', obraId).some((x) => x.id === id)) return falha('Observação não encontrada nesta obra.')
+  db.gemba_observacoes = db.gemba_observacoes.filter((x) => x.id !== id)
   return ok(id)
 }
 

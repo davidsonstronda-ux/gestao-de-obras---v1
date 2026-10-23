@@ -406,3 +406,148 @@ export const mockNaoRealizados = [
   { id: 'nr1', obra_id: 'o1', atividade_id: 'at5', semana: '2026-10-12', causa: 'Falta material', causa_detalhe: null, autor_id: 'u2' },
   { id: 'nr2', obra_id: 'o1', atividade_id: 'at10', semana: '2026-10-12', causa: 'Aguardando projeto', causa_detalhe: null, autor_id: 'u2' },
 ]
+
+// Qualidade — aba Vistoria. Nº por obra (#1, #2…). Na Casa Jardins, só um.
+// As fotos de exemplo ficam em public/exemplo/; as tiradas no app são prévia local.
+export const mockVistoriaRegistros = [
+  {
+    id: 'vr1', obra_id: 'o1', numero: 1, descricao: 'Mancha de infiltração na parede do box, junto ao registro do chuveiro.',
+    local: 'Banho social', pavimento: 'Térreo', empreiteiro_id: 'e2', responsavel_id: 'u1', prazo: '2026-10-17',
+    data_vistoria: '2026-10-13', vistoriado_por: 'u1', status: 'Pendente', foto: '/exemplo/problema.svg', foto_evidencia: '', resolvido_em: null,
+    observacoes: '[13/10/2026 10:42] ImperTec avisada por WhatsApp; precisa abrir a parede para achar o ponto.',
+  },
+  {
+    id: 'vr2', obra_id: 'o1', numero: 2, descricao: 'Fissura no forro de gesso da sala, na emenda das placas perto do cortineiro.',
+    local: 'Sala', pavimento: 'Térreo', empreiteiro_id: 'e3', responsavel_id: 'u2', prazo: '2026-10-24',
+    data_vistoria: '2026-10-15', vistoriado_por: 'u1', status: 'Em andamento', foto: '/exemplo/fissura.svg', foto_evidencia: '', resolvido_em: null,
+    observacoes: '[19/10/2026 08:15] Gesso & Cia começou a refazer a emenda com fita telada.\n[15/10/2026 16:30] Fissura de uns 80 cm; não é estrutural.',
+  },
+  {
+    id: 'vr3', obra_id: 'o1', numero: 3, descricao: 'Rejunte falhando no piso do box da suíte master.',
+    local: 'Suíte master', pavimento: 'Superior', empreiteiro_id: 'e1', responsavel_id: 'u2', prazo: '2026-10-20',
+    data_vistoria: '2026-10-16', vistoriado_por: 'u2', status: 'Pendente', foto: '', foto_evidencia: '', resolvido_em: null, observacoes: '',
+  },
+  {
+    id: 'vr4', obra_id: 'o1', numero: 4, descricao: 'Respingo de tinta nas esquadrias da fachada principal.',
+    local: 'Fachada', pavimento: '', empreiteiro_id: 'e6', responsavel_id: 'u2', prazo: '2026-10-30',
+    data_vistoria: '2026-10-19', vistoriado_por: 'u2', status: 'Pendente', foto: '', foto_evidencia: '', resolvido_em: null, observacoes: '',
+  },
+  {
+    id: 'vr5', obra_id: 'o1', numero: 5, descricao: 'Caixa de tomada da bancada fora de prumo e fora da altura do projeto.',
+    local: 'Cozinha', pavimento: 'Térreo', empreiteiro_id: 'e4', responsavel_id: 'u1', prazo: '2026-10-23',
+    data_vistoria: '2026-10-16', vistoriado_por: 'u1', status: 'Em andamento', foto: '', foto_evidencia: '', resolvido_em: null,
+    observacoes: '[17/10/2026 09:05] Elétrica Ramos vai reposicionar antes da bancada chegar.',
+  },
+  {
+    id: 'vr6', obra_id: 'o1', numero: 6, descricao: 'Ralo sem caimento: água empoçando no piso da área gourmet.',
+    local: 'Área gourmet', pavimento: 'Térreo', empreiteiro_id: 'e2', responsavel_id: 'u1', prazo: '2026-10-16',
+    data_vistoria: '2026-10-09', vistoriado_por: 'u1', status: 'Resolvido', foto: '/exemplo/problema.svg', foto_evidencia: '/exemplo/correcao.svg', resolvido_em: '2026-10-15',
+    observacoes: '[15/10/2026 17:40] Resolvido: contrapiso refeito, teste com balde OK.\n[12/10/2026 11:20] Contrapiso vai ser refeito no trecho do ralo.',
+  },
+  {
+    id: 'vr7', obra_id: 'o2', numero: 1, descricao: 'Armadura exposta na lateral do bloco B1 depois da desforma.',
+    local: 'Bloco B1', pavimento: 'Fundação', empreiteiro_id: 'e9', responsavel_id: 'u1', prazo: '2026-10-27',
+    data_vistoria: '2026-10-19', vistoriado_por: 'u1', status: 'Pendente', foto: '', foto_evidencia: '', resolvido_em: null, observacoes: '',
+  },
+]
+
+// Qualidade — FVS. Os modelos são da empresa (sem obra_id), como o catálogo de
+// materiais. Vistorias e NCs são da obra; a Casa Jardins tem uma vistoria e
+// nenhuma NC.
+const grupo = (nome, itens) => ({ nome, itens: itens.map(([id, titulo]) => ({ id, titulo })) })
+const GRUPOS_IMPER = [
+  grupo('Pré-execução', [['fi1', 'Superfície limpa, seca e sem partes soltas'], ['fi2', 'Cantos e arestas arredondados (meia-cana)'], ['fi3', 'Ralos e tubos chumbados antes da manta']]),
+  grupo('Execução', [['fi4', 'Primer aplicado em toda a área'], ['fi5', 'Sobreposição das mantas de no mínimo 10 cm'], ['fi6', 'Subida no rodapé de 30 cm (box: 1,80 m)'], ['fi7', 'Reforço nos ralos e passagens de tubo']]),
+  grupo('Proteção e acabamento', [['fi8', 'Teste de estanqueidade de 72 h sem vazamento'], ['fi9', 'Proteção mecânica executada']]),
+]
+const GRUPOS_CERAMICA = [
+  grupo('Pré-execução', [['fi10', 'Base no prumo e no nível (até 3 mm em 2 m)'], ['fi11', 'Peças conferidas: lote, tonalidade e calibre'], ['fi12', 'Paginação aprovada']]),
+  grupo('Execução', [['fi13', 'Dupla colagem em peças maiores que 30x30'], ['fi14', 'Juntas alinhadas e com espaçador'], ['fi15', 'Caimento para o ralo conferido'], ['fi16', 'Sem peças ocas (teste do cabo de martelo)']]),
+]
+
+export const mockFvsModelos = [
+  { id: 'fm1', codigo: 'FVS-01', nome: 'Impermeabilização — Áreas Molhadas', categoria: 'Impermeabilização', versao: 2, grupos: GRUPOS_IMPER },
+  { id: 'fm2', codigo: 'FVS-02', nome: 'Revestimento Cerâmico', categoria: 'Acabamento', versao: 1, grupos: GRUPOS_CERAMICA },
+]
+
+const copiaDe = (modelo) => ({ modelo_id: modelo.id, modelo_codigo: modelo.codigo, modelo_nome: modelo.nome, modelo_versao: modelo.versao, grupos: structuredClone(modelo.grupos) })
+export const mockFvsVistorias = [
+  {
+    id: 'fv1', obra_id: 'o1', ...copiaDe(mockFvsModelos[0]), ambiente: 'Banheiro social · Térreo', status: 'Concluída',
+    respostas: { fi1: 'OK', fi2: 'OK', fi3: 'OK', fi4: 'OK', fi5: 'NC', fi6: 'OK', fi7: 'OK', fi8: 'NC', fi9: 'N.A.' },
+    criada_por: 'u1', criada_em: '2026-10-08', concluida_em: '2026-10-09',
+  },
+  {
+    id: 'fv2', obra_id: 'o1', ...copiaDe(mockFvsModelos[1]), ambiente: 'Suíte master · Superior', status: 'Em andamento',
+    respostas: { fi10: 'OK', fi11: 'OK', fi12: 'OK', fi13: 'OK', fi14: 'NC', fi16: 'NC' },
+    criada_por: 'u2', criada_em: '2026-10-16', concluida_em: null,
+  },
+  {
+    id: 'fv3', obra_id: 'o2', ...copiaDe(mockFvsModelos[0]), ambiente: 'Reservatório inferior', status: 'Em andamento',
+    respostas: { fi1: 'OK', fi2: 'OK' }, criada_por: 'u1', criada_em: '2026-10-19', concluida_em: null,
+  },
+]
+
+const passo = (status, texto, autor_id, em) => ({ status, texto, autor_id, em })
+export const mockFvsNcs = [
+  {
+    id: 'nc1', obra_id: 'o1', numero: 1, vistoria_id: 'fv1', item_id: 'fi5', titulo: 'Sobreposição das mantas de no mínimo 10 cm',
+    descricao: 'Sobreposição de 5 cm na emenda junto ao box.', solucao: 'Refazer a emenda com faixa de reforço de 20 cm.',
+    severidade: 'Média', empreiteiro_id: 'e2', fotos: ['/exemplo/problema.svg'], status: 'Fechada', aberta_em: '2026-10-08', fechada_em: '2026-10-10',
+    historico: [
+      passo('Aberta', 'Aberta por Davidson', 'u1', '2026-10-08T14:18:00'),
+      passo('Encaminhada', 'Encaminhada à ImperTec por Davidson', 'u1', '2026-10-08T14:25:00'),
+      passo('Corrigida', 'Marcada como corrigida por Seu Raimundo', 'u2', '2026-10-09T16:00:00'),
+      passo('Fechada', 'Aprovada e fechada por Davidson', 'u1', '2026-10-10T09:10:00'),
+    ],
+  },
+  {
+    id: 'nc2', obra_id: 'o1', numero: 2, vistoria_id: 'fv1', item_id: 'fi8', titulo: 'Teste de estanqueidade de 72 h sem vazamento',
+    descricao: 'Mancha de umidade no teto do lavabo, embaixo, depois de 48 h de teste.', solucao: 'Localizar o ponto no ralo, refazer o reforço e repetir o teste.',
+    severidade: 'Alta', empreiteiro_id: 'e2', fotos: [], status: 'Corrigida', aberta_em: '2026-10-09', fechada_em: null,
+    historico: [
+      passo('Aberta', 'Aberta por Davidson', 'u1', '2026-10-09T11:02:00'),
+      passo('Encaminhada', 'Encaminhada à ImperTec por Davidson', 'u1', '2026-10-09T11:05:00'),
+      passo('Corrigida', 'Marcada como corrigida por Seu Raimundo', 'u2', '2026-10-17T15:30:00'),
+    ],
+  },
+  {
+    id: 'nc3', obra_id: 'o1', numero: 3, vistoria_id: 'fv2', item_id: 'fi14', titulo: 'Juntas alinhadas e com espaçador',
+    descricao: 'Juntas desalinhadas na parede do box.', solucao: 'Remover e reassentar 6 peças.',
+    severidade: 'Baixa', empreiteiro_id: 'e1', fotos: [], status: 'Encaminhada', aberta_em: '2026-10-16', fechada_em: null,
+    historico: [
+      passo('Aberta', 'Aberta por Seu Raimundo', 'u2', '2026-10-16T10:40:00'),
+      passo('Encaminhada', 'Encaminhada à Hidro Sul por Seu Raimundo', 'u2', '2026-10-16T10:45:00'),
+    ],
+  },
+  {
+    id: 'nc4', obra_id: 'o1', numero: 4, vistoria_id: 'fv2', item_id: 'fi16', titulo: 'Sem peças ocas (teste do cabo de martelo)',
+    descricao: 'Três peças ocas no piso, perto do ralo.', solucao: 'Trocar as peças com dupla colagem.',
+    severidade: 'Alta', empreiteiro_id: 'e1', fotos: [], status: 'Aberta', aberta_em: '2026-10-19', fechada_em: null,
+    historico: [passo('Aberta', 'Aberta por Seu Raimundo', 'u2', '2026-10-19T08:30:00')],
+  },
+]
+
+// Qualidade — Gemba Walk. Cobre os 7 desperdícios na Residência; a Casa
+// Jardins tem uma observação só.
+const gemba = (id, obra_id, local, desperdicios, descricao, causa_raiz, acao, prazo, responsavel_id, status, extra = {}) => ({
+  id, obra_id, local, desperdicios, descricao, causa_raiz, acao, prazo, responsavel_id, status, foto: '', criada_em: '2026-10-15', criada_por: 'u1', ...extra,
+})
+export const mockGembaObservacoes = [
+  gemba('g1', 'o1', 'Banho social', ['Retrabalho', 'Processo desnecessário'], 'Parede rasgada duas vezes para passar tubulação no mesmo trecho.',
+    'Hidráulica e elétrica rasgaram sem compatibilizar o projeto.', 'Reunião de compatibilização antes de qualquer rasgo.', '2026-10-22', 'u1', 'Pendente', { foto: '/exemplo/problema.svg' }),
+  gemba('g2', 'o1', 'Cozinha', ['Espera'], 'Equipe do gesso parada 2 h esperando o andaime ser liberado.',
+    'Andaime sem programação de uso entre as equipes.', 'Quadro de reserva do andaime na entrada do canteiro.', '2026-10-18', 'u2', 'Em andamento'),
+  gemba('g3', 'o1', 'Fachada', ['Transporte', 'Movimentação'], 'Argamassa subindo de carrinho pela escada porque o guincho parou.',
+    'Guincho em manutenção sem equipamento reserva.', 'Alugar guincho reserva até o conserto.', '2026-10-24', 'u1', 'Pendente'),
+  gemba('g4', 'o1', 'Garagem', ['Estoque'], 'Porcelanato da área gourmet parado há 5 semanas ocupando a garagem.',
+    'Compra antecipada, sem olhar o planejamento.', 'Comprar acabamento pelo lookahead de 3 semanas.', null, 'u1', 'Resolvido', { criada_em: '2026-10-01' }),
+  gemba('g5', 'o1', 'Área gourmet', ['Superprodução'], 'Sobra de argamassa preparada no fim do dia, jogada fora.',
+    'Preparo sem medida, "de olho".', 'Padiola marcada e preparo por demanda.', '2026-10-20', 'u2', 'Pendente'),
+  gemba('g6', 'o1', 'Suíte master', ['Movimentação', 'Espera'], 'Pedreiro desce dois andares para buscar ferramenta várias vezes ao dia.',
+    'Sem kit de ferramentas por pavimento.', 'Caixa de ferramentas fixa em cada pavimento.', '2026-10-30', 'u2', 'Em andamento', { foto: '/exemplo/fissura.svg' }),
+  gemba('g7', 'o1', 'Sala', ['Retrabalho'], 'Pintura retocada depois da instalação do forro.',
+    'Sequência de serviços invertida.', 'Forro antes da pintura final no planejamento.', null, 'u1', 'Pendente'),
+  gemba('g8', 'o2', 'Bloco B2', ['Espera'], 'Concreto chegou 3 h atrasado; equipe parada.',
+    'Pedido feito no próprio dia da concretagem.', 'Programar o concreto com 48 h de antecedência.', '2026-10-23', 'u1', 'Pendente', { criada_em: '2026-10-19' }),
+]

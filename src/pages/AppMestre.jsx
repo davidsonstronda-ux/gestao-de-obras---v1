@@ -6,6 +6,7 @@ import Pendencias, { Pendencia } from '../screens/pendencias.jsx'
 import Fotos from '../screens/fotos.jsx'
 import Materiais from '../screens/materiais.jsx'
 import Planejamento from '../screens/planejamento.jsx'
+import Qualidade from '../screens/qualidadeSobDemanda.jsx'
 import { Mais } from '../screens/cadastros.jsx'
 
 // Mestre: lança diário, fotos e conclusões. Não vê nenhum valor.
@@ -20,6 +21,7 @@ export default function AppMestre() {
     case 'fotos': corpo = <Fotos />; break
     case 'materiais': corpo = <Materiais />; break
     case 'planejamento': corpo = <Planejamento />; break
+    case 'qualidade': corpo = <Qualidade />; break
     case 'mais': corpo = <Mais goto={goto} />; break
     default: corpo = <Diario goto={goto} />
   }

@@ -42,6 +42,7 @@ const P = {
   seguranca: <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />,
   logistica: <><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></>,
   medicao: <><path d="M3 17l5-5 4 4 8-8" /><path d="M15 8h5v5" /><path d="M3 21h18" /></>,
+  qualidade: <><rect x="5" y="4" width="14" height="17" rx="1" /><path d="M9 4V2h6v2" /><path d="M9 13l2 2 4-4" /></>,
   planejamento: <><rect x="9" y="2" width="6" height="5" rx="1" /><rect x="2" y="17" width="6" height="5" rx="1" /><rect x="16" y="17" width="6" height="5" rx="1" /><path d="M12 7v5M5 17v-5h14v5" /></>,
 }
 export function Icon({ nome, tamanho }) {
@@ -271,7 +272,7 @@ export function Cabecalho({ abas, voltar, titulo, sub }) {
 
 // ── Casca: menu lateral (computador) + barra inferior (celular) ─────────────
 export const ROTULOS = {
-  frentes: 'Frentes', diario: 'Diário', pendencias: 'Pendências', fotos: 'Fotos', materiais: 'Materiais', planejamento: 'Planejamento', medicao: 'Medição', mais: 'Mais', painel: 'Painel',
+  frentes: 'Frentes', diario: 'Diário', pendencias: 'Pendências', fotos: 'Fotos', materiais: 'Materiais', planejamento: 'Planejamento', medicao: 'Medição', qualidade: 'Qualidade', mais: 'Mais', painel: 'Painel',
   obras: 'Obras', cronograma: 'Frentes e cronograma', empreiteiros: 'Empreiteiros e ambientes', equipe: 'Equipe', empresa: 'Empresa e logo',
 }
 export const CADASTROS = ['obras', 'cronograma', 'empreiteiros', 'equipe', 'empresa']

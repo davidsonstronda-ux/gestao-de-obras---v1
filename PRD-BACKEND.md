@@ -469,6 +469,106 @@ Para que serve: a atividade planejada numa semana que não foi concluída, com a
 
 Concluir a atividade apaga o "não realizado" da semana em que foi concluída.
 
+## Tabela `vistoria_registros` (Qualidade — aba Vistoria, acrescentada em 23/10)
+
+Para que serve: cada problema achado numa vistoria rápida da obra, até a correção com foto de evidência.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | → obras |
+| numero | int | sim | sequência por obra (#1, #2…); único (obra_id, numero) |
+| descricao | text | sim | |
+| local | text | sim | |
+| pavimento | text | não | |
+| empreiteiro_id | uuid | sim | quem corrige → empreiteiros da mesma obra |
+| responsavel_id | uuid | sim | quem acompanha → profiles membro da obra (engenheiro, mestre ou arquiteta) |
+| prazo | date | sim | ≥ data_vistoria |
+| data_vistoria | date | sim | padrão hoje |
+| vistoriado_por | uuid | sim | → profiles |
+| status | text | sim | CHECK: `Pendente`, `Em andamento`, `Resolvido` |
+| foto | text | não | caminho no Storage |
+| foto_evidencia | text | não | obrigatório quando status = `Resolvido` (CHECK) |
+| resolvido_em | date | não | preenchido ao resolver |
+| observacoes | text | não | histórico acumulado, nota mais nova no topo, cada uma com [dd/mm/aaaa hh:mm]; cada mudança de situação também entra aqui ("Em andamento — por X") |
+
+Permissão: ler — engenheiro, mestre, arquiteta da obra; criar, mudar status, anotar — engenheiro e mestre; apagar — engenheiro. Cliente não lê.
+
+## Tabela `fvs_modelos` (Qualidade — FVS)
+
+Para que serve: a ficha-modelo de verificação de um serviço. **Da empresa, sem `obra_id`** (como `materiais`): vale para todas as obras.
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| codigo | text | sim | FVS-01, FVS-02…; único |
+| nome | text | sim | |
+| categoria | text | sim | CHECK: `Impermeabilização`, `Estrutura`, `Instalações`, `Acabamento` |
+| versao | int | sim | começa em 1; sobe a cada edição |
+| grupos | jsonb | sim | `[{ nome, itens: [{ id, titulo }] }]`, pelo menos um grupo com um item |
+
+Permissão: ler — engenheiro, mestre e arquiteta; criar e editar — engenheiro.
+
+## Tabela `fvs_vistorias` (Qualidade — FVS)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | → obras |
+| modelo_id | uuid | sim | → fvs_modelos |
+| modelo_codigo, modelo_nome, modelo_versao | text/int | sim | cópia do modelo no dia em que a vistoria começou |
+| grupos | jsonb | sim | cópia dos itens do modelo (a vistoria não muda se o modelo mudar) |
+| ambiente | text | sim | texto livre |
+| respostas | jsonb | sim | `{ item_id: 'OK' \| 'NC' \| 'N.A.' }` |
+| status | text | sim | CHECK: `Em andamento`, `Concluída` |
+| criada_por | uuid | sim | → profiles |
+| criada_em | date | sim | |
+| concluida_em | date | não | só com todos os itens respondidos; concluída não aceita mudança |
+
+Permissão: ler — engenheiro, mestre, arquiteta da obra; criar, responder, finalizar — engenheiro e mestre.
+
+## Tabela `fvs_ncs` (Qualidade — FVS)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | → obras |
+| numero | int | sim | por obra; mostrado como NC-001; único (obra_id, numero) |
+| vistoria_id | uuid | sim | → fvs_vistorias da mesma obra |
+| item_id | text | sim | item da vistoria; uma NC por item |
+| titulo | text | sim | título do item |
+| descricao | text | sim | |
+| solucao | text | não | solução proposta |
+| severidade | text | sim | CHECK: `Baixa`, `Média`, `Alta` |
+| empreiteiro_id | uuid | sim | quem corrige → empreiteiros da mesma obra |
+| fotos | text[] | não | caminhos no Storage |
+| status | text | sim | CHECK: `Aberta`, `Encaminhada`, `Corrigida`, `Fechada` |
+| aberta_em | date | sim | |
+| fechada_em | date | não | |
+| historico | jsonb | sim | `[{ status, texto, autor_id, em }]`, um por passo |
+
+Passos: Aberta→Encaminhada e Encaminhada→Corrigida (engenheiro e mestre); Corrigida→Fechada e Corrigida→Encaminhada com motivo (só engenheiro). Cliente não lê nenhuma das três tabelas.
+
+## Tabela `gemba_observacoes` (Qualidade — Gemba Walk)
+
+| Campo | Tipo | Obrigatório | Observação |
+|---|---|---|---|
+| id | uuid | sim | chave |
+| obra_id | uuid | sim | → obras |
+| local | text | sim | |
+| descricao | text | sim | |
+| causa_raiz | text | sim | |
+| acao | text | sim | |
+| desperdicios | text[] | sim | 1 ou mais, sem repetir; CHECK: cada um em `Retrabalho`, `Espera`, `Transporte`, `Movimentação`, `Estoque`, `Superprodução`, `Processo desnecessário` |
+| prazo | date | não | |
+| responsavel_id | uuid | sim | → profiles membro da obra |
+| status | text | sim | CHECK: `Pendente`, `Em andamento`, `Resolvido` |
+| foto | text | não | caminho no Storage |
+| criada_em | date | sim | |
+| criada_por | uuid | sim | → profiles |
+
+Permissão: ler — engenheiro, mestre, arquiteta da obra; criar e mover — engenheiro e mestre; apagar — engenheiro. Cliente não lê.
+
 ---
 
 ## Permissões
