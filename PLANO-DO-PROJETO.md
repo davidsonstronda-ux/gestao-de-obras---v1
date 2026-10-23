@@ -1,7 +1,7 @@
 # Plano do Projeto — Gestão de Obras (nome provisório)
 
 > Fonte da verdade deste projeto. Quando mudar de ideia, mude aqui primeiro.
-> Última atualização: 21/10/2026 — acrescentado o módulo Planejamento (Last Planner + EAP), decidido pelo Davidson em 21/10: atividades ligadas às frentes, mestre só no Curto prazo, causas = motivos do diário. Antes: 20/10/2026 — Etapas 1 e 3 escritas, Etapa 2 pendente. PRD-FRONTEND.md e PRD-BACKEND.md gerados em 20/10. Os 7 pontos que estavam [A CONFIRMAR] foram decididos pelo Davidson em 20/10 (ver "Decisões de 20/10" na Etapa 3). Resolvido em 20/10: são várias obras, com seletor; a Medição foi para a segunda entrega.
+> Última atualização: 23/10/2026 — a Medição foi antecipada (decisão do Davidson em 23/10): construída agora, ainda no mock, seguindo a especificação dos PRDs; nº do boletim por empreiteiro, digitar % ou R$ e trava de 100% do contratado vieram do modelo do curso. Antes: 21/10/2026 — acrescentado o módulo Planejamento (Last Planner + EAP), decidido pelo Davidson em 21/10: atividades ligadas às frentes, mestre só no Curto prazo, causas = motivos do diário. Antes: 20/10/2026 — Etapas 1 e 3 escritas, Etapa 2 pendente. PRD-FRONTEND.md e PRD-BACKEND.md gerados em 20/10. Os 7 pontos que estavam [A CONFIRMAR] foram decididos pelo Davidson em 20/10 (ver "Decisões de 20/10" na Etapa 3). Resolvido em 20/10: são várias obras, com seletor; a Medição foi para a segunda entrega.
 > O rascunho anterior (5 obras, foco em medição) ficou guardado em "PLANO-DO-PROJETO (rascunho anterior - 5 obras).md".
 
 ## Em uma frase
@@ -81,7 +81,7 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 - **Ações:** engenheiro e mestre abrem; arquiteta e engenheiro comentam; engenheiro fecha
 - **Vazio:** "Nenhuma pendência de projeto aberta."
 
-### Medição (só engenheiro) — SEGUNDA ENTREGA, fora da v1 (decidido em 20/10)
+### Medição (só engenheiro) — era segunda entrega (20/10); antecipada pelo Davidson em 23/10, entra antes do deploy
 - **Abre em:** lista por empreiteiro
 - **Mostra:** empreiteiro · serviços · valor contratado · medido até hoje · **a medir** (concluído pelo mestre e ainda não medido) · saldo
 - **Ações:** gerar medição do período, ajustar com justificativa, fechar, exportar para Excel

@@ -22,6 +22,10 @@ import {
   semanaDe, trocarOrdem, validarCausa, validarAtividade, validarDiasSemana, validarFeriado, validarRestricao,
 } from './planejamento.js'
 import { conferirCronograma } from './importarCronograma.js'
+import {
+  arredondarCentavos, difereDoSugerido, fimDaUltimaFechada, numerarMedicoes, ordenarEmpreiteiros, ordenarHistorico, periodoPadrao, resumoFrente,
+  somarResumos, sugeridoNoPeriodo, totalDaMedicao, validarMedicao,
+} from './medicao.js'
 
 // Cópia de trabalho: as telas podem criar e editar sem estragar o original.
 const db = structuredClone({
@@ -33,6 +37,7 @@ const db = structuredClone({
   pedido_historico: mock.mockPedidoHistorico, insumos: mock.mockInsumos, movimentos: mock.mockMovimentos,
   calendarios: mock.mockCalendarios, feriados: mock.mockFeriados, atividades: mock.mockAtividades,
   restricoes: mock.mockRestricoes, subtarefas: mock.mockSubtarefas, nao_realizados: mock.mockNaoRealizados,
+  medicoes: mock.mockMedicoes, medicao_itens: mock.mockMedicaoItens,
 })
 
 const contexto = { obraId: null, perfil: null }
@@ -871,6 +876,149 @@ export async function removerFeriado(id) {
   if (!pode(role(), 'planejar')) return falha('Só o engenheiro muda o calendário.')
   if (!daObra('feriados', obraId).some((f) => f.id === id)) return falha('Feriado não encontrado nesta obra.')
   db.feriados = db.feriados.filter((f) => f.id !== id)
+  return ok(id)
+}
+
+// ── medição (só engenheiro) ─────────────────────────────────────────────────
+// Por empreiteiro: contratado, medido (só Fechadas), a medir e saldo; e o
+// histórico de medições numeradas. As contas são de lib/medicao.js.
+export async function listarMedicao() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'medir')) return falha('Só o engenheiro vê a medição.')
+  const medicoes = numerarMedicoes(daObra('medicoes', obraId))
+  const itens = daObra('medicao_itens', obraId)
+  const fechadas = new Set(medicoes.filter((m) => m.situacao === 'Fechada').map((m) => m.id))
+  const empreiteirosDaObra = daObra('empreiteiros', obraId)
+
+  const empreiteiros = empreiteirosDaObra.map((e) => {
+    const desde = fimDaUltimaFechada(medicoes.filter((m) => m.empreiteiro_id === e.id))
+    const minhas = frentesParaMedir(obraId, e.id, fechadas)
+    const resumos = minhas.map((f) => resumoFrente({ valorContratado: f.contratado, ambientes: f.ambientes, medido: f.jaMedido, desde }))
+    const rascunho = medicoes.find((m) => m.empreiteiro_id === e.id && m.situacao === 'Rascunho')
+    return { id: e.id, nome: e.nome, especialidade: e.especialidade, frentes: minhas.length, ultimaFechada: desde, rascunho: rascunho?.numero ?? null, ...somarResumos(resumos) }
+  }).filter((e) => e.frentes > 0)
+
+  const historico = ordenarHistorico(medicoes.map((m) => ({
+    ...m,
+    empreiteiro: empreiteirosDaObra.find((e) => e.id === m.empreiteiro_id)?.nome || '—',
+    total: totalDaMedicao(itens.filter((i) => i.medicao_id === m.id)),
+  })))
+
+  return ok({ totais: somarResumos(empreiteiros), empreiteiros: ordenarEmpreiteiros(empreiteiros), historico })
+}
+
+// As frentes de um empreiteiro como a medição as vê: contratado, já medido nas
+// medições Fechadas de `fechadas` (Set de ids) e ambientes com a data de conclusão.
+function frentesParaMedir(obraId, empreiteiroId, fechadas) {
+  const itens = daObra('medicao_itens', obraId)
+  const fa = daObra('frente_ambientes', obraId)
+  const contratos = daObra('contratos', obraId)
+  const ambientes = daObra('ambientes', obraId)
+  return daObra('frentes', obraId).filter((f) => f.empreiteiro_id === empreiteiroId).map((f) => ({
+    frente_id: f.id,
+    servico: f.servico,
+    contratado: contratos.find((c) => c.frente_id === f.id)?.valor_contratado ?? 0,
+    jaMedido: totalDaMedicao(itens.filter((i) => i.frente_id === f.id && fechadas.has(i.medicao_id))),
+    inicio_previsto: f.inicio_previsto,
+    ambientes: fa.filter((x) => x.frente_id === f.id)
+      .map((x) => ({ nome: ambientes.find((a) => a.id === x.ambiente_id)?.nome || '—', concluido_em: x.concluido_em })),
+  }))
+}
+
+// A ficha de uma medição: a pedida (medicaoId), ou a do empreiteiro — o rascunho
+// dele se houver, senão uma nova. Fechada vem só para leitura.
+export async function fichaMedicao({ medicaoId, empreiteiroId }) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'medir')) return falha('Só o engenheiro vê a medição.')
+  const medicoes = numerarMedicoes(daObra('medicoes', obraId))
+  const m = medicaoId
+    ? medicoes.find((x) => x.id === medicaoId)
+    : medicoes.find((x) => x.empreiteiro_id === empreiteiroId && x.situacao === 'Rascunho')
+  if (medicaoId && !m) return falha('Medição não encontrada nesta obra.')
+  const empreiteiro = daObra('empreiteiros', obraId).find((e) => e.id === (m?.empreiteiro_id || empreiteiroId))
+  if (!empreiteiro) return falha('Empreiteiro não encontrado nesta obra.')
+  const doEmpreiteiro = medicoes.filter((x) => x.empreiteiro_id === empreiteiro.id && x.id !== m?.id)
+  // Uma Fechada olha só as fechadas de antes dela; rascunho e nova, todas.
+  const fechadas = doEmpreiteiro.filter((x) => x.situacao === 'Fechada' && (m?.situacao !== 'Fechada' || x.periodo_fim < m.periodo_inicio))
+  const frentes = frentesParaMedir(obraId, empreiteiro.id, new Set(fechadas.map((x) => x.id)))
+  const ultimaFechada = fimDaUltimaFechada(fechadas)
+  const itens = m ? daObra('medicao_itens', obraId).filter((i) => i.medicao_id === m.id) : []
+  const obra = db.obras.find((o) => o.id === obraId)
+  return ok({
+    medicao: m ? { ...m } : null,
+    numero: m?.numero ?? doEmpreiteiro.length + 1,
+    situacao: m?.situacao || 'Rascunho',
+    editavel: !m || m.situacao === 'Rascunho',
+    empreiteiro: { id: empreiteiro.id, nome: empreiteiro.nome },
+    obra: { nome: obra.nome, codigo: obra.codigo },
+    ultimaFechada,
+    periodo: m ? { inicio: m.periodo_inicio, fim: m.periodo_fim }
+      : periodoPadrao({ ultimaFechada, iniciosPrevistos: frentes.map((f) => f.inicio_previsto), hoje: hoje() }),
+    frentes: frentes.map((f) => ({ ...f, item: itens.find((i) => i.frente_id === f.frente_id) || null })),
+  })
+}
+
+// Grava a medição como Rascunho (nova ou a mesma) e, com `fechar`, fecha.
+// `itens`: [{ frente_id, valor, justificativa }]. Sugerido, contratado e já
+// medido são recalculados aqui — a tela não decide nada disso.
+export async function salvarMedicao({ id, empreiteiro_id, periodo_inicio, periodo_fim, itens = [] }, { fechar = false } = {}) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'medir')) return falha('Só o engenheiro lança medição.')
+  const existente = id ? daObra('medicoes', obraId).find((m) => m.id === id) : null
+  if (id && !existente) return falha('Medição não encontrada nesta obra.')
+  if (existente && existente.situacao !== 'Rascunho') return falha('Medição fechada não muda mais.')
+  const empId = existente?.empreiteiro_id || empreiteiro_id
+  if (!daObra('empreiteiros', obraId).some((e) => e.id === empId)) return falha('Empreiteiro não encontrado nesta obra.')
+  const doEmpreiteiro = daObra('medicoes', obraId).filter((m) => m.empreiteiro_id === empId && m.id !== existente?.id)
+  if (!existente && doEmpreiteiro.some((m) => m.situacao === 'Rascunho')) return falha('Este empreiteiro já tem uma medição em rascunho. Continue por ela.')
+  const fechadas = doEmpreiteiro.filter((m) => m.situacao === 'Fechada')
+  const ultimaFechada = fimDaUltimaFechada(fechadas)
+  const linhas = frentesParaMedir(obraId, empId, new Set(fechadas.map((m) => m.id))).map((f) => {
+    const enviado = itens.find((i) => i.frente_id === f.frente_id)
+    return {
+      frente_id: f.frente_id, contratado: f.contratado, jaMedido: f.jaMedido,
+      valor_sugerido: sugeridoNoPeriodo({ valorContratado: f.contratado, ambientes: f.ambientes, inicio: periodo_inicio, fim: periodo_fim, jaMedido: f.jaMedido }),
+      valor: Number.isFinite(enviado?.valor) && enviado.valor >= 0 ? arredondarCentavos(enviado.valor) : null,
+      justificativa: String(enviado?.justificativa || '').trim() || null,
+    }
+  })
+  if (!linhas.length) return falha('Este empreiteiro não tem frente nesta obra.')
+  const problemas = Object.values(validarMedicao({ periodo_inicio, periodo_fim, linhas }, { hoje: hoje(), ultimaFechada }))
+  if (problemas.length) return falha(problemas.join(' '))
+
+  let m = existente
+  if (m) Object.assign(m, { periodo_inicio, periodo_fim })
+  else {
+    m = { id: novoId('md'), obra_id: obraId, empreiteiro_id: empId, periodo_inicio, periodo_fim, situacao: 'Rascunho', fechada_em: null, created_at: agora() }
+    db.medicoes.push(m)
+  }
+  db.medicao_itens = db.medicao_itens.filter((i) => i.medicao_id !== m.id)
+  for (const l of linhas) {
+    // Justificativa só fica guardada quando o valor difere do sugerido.
+    const justificativa = difereDoSugerido(l.valor, l.valor_sugerido) ? l.justificativa : null
+    db.medicao_itens.push({ id: novoId('mi'), obra_id: obraId, medicao_id: m.id, frente_id: l.frente_id, valor_sugerido: l.valor_sugerido, valor: l.valor, justificativa })
+  }
+  if (fechar) Object.assign(m, { situacao: 'Fechada', fechada_em: agora() })
+  return ok({ ...m })
+}
+
+// Rascunho pode ser apagado (com os itens). Fechada, não.
+export async function apagarRascunhoMedicao(id) {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'medir')) return falha('Só o engenheiro apaga medição.')
+  const m = daObra('medicoes', obraId).find((x) => x.id === id)
+  if (!m) return falha('Medição não encontrada nesta obra.')
+  if (m.situacao !== 'Rascunho') return falha('Medição fechada não pode ser apagada.')
+  db.medicoes = db.medicoes.filter((x) => x.id !== id)
+  db.medicao_itens = db.medicao_itens.filter((i) => i.medicao_id !== id)
   return ok(id)
 }
 

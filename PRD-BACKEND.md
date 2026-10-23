@@ -633,7 +633,7 @@ Para que serve: dados da empresa que valem para todas as obras. Uma linha só.
 
 # Segunda entrega (fora da v1)
 
-Decidido em 20/10/2026: a Medição fica para depois que a v1 estiver no ar. **Nada desta seção é criado no banco da v1.** Na v1, `contratos` e `frente_ambientes.concluido_em` já guardam o que a medição vai precisar.
+Decidido em 20/10/2026: a Medição ficaria para depois da v1. **Antecipada em 23/10/2026**: as duas tabelas entram na Etapa 7 junto com as outras. Acréscimos de 23/10: o número da medição (nº 1, nº 2…) é calculado pela ordem do período dentro do empreiteiro, sem coluna própria — os períodos não se sobrepõem e só o rascunho, que é sempre o último, pode ser apagado; a soma dos itens de uma frente nunca passa do valor contratado; o valor sugerido nunca passa do que sobra do contrato; uma medição com todas as frentes em 0 não é aceita (cada frente pode ser 0). Na v1, `contratos` e `frente_ambientes.concluido_em` já guardam o que a medição vai precisar.
 
 ## Tabela `medicoes`
 

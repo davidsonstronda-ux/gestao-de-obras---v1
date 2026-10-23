@@ -545,7 +545,7 @@ Usuários de exemplo:
 
 # Segunda entrega (fora da v1)
 
-Decidido em 20/10/2026: a Medição fica para depois que a v1 estiver no ar. Esta especificação fica guardada aqui para não se perder. **Nada desta seção é construído na v1.**
+Decidido em 20/10/2026: a Medição ficaria para depois da v1. **Antecipada em 23/10/2026** (Davidson): construída agora, antes do deploy. Acréscimos de 23/10: cada medição tem número por empreiteiro (Medição nº 1, nº 2…); no valor de cada frente dá para digitar R$ ou % do contratado (um calcula o outro); nenhuma frente passa de 100% do contratado somando as medições; cada empreiteiro tem no máximo um rascunho por vez (tocar nele continua o rascunho); o período de uma medição nova começa depois do fim da última fechada; rascunho pode ser apagado, com confirmação; o sugerido nunca passa do que sobra do contrato; medição com todas as frentes em 0 não é aceita.
 
 ## Tela: Medição
 

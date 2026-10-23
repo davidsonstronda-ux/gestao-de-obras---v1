@@ -41,6 +41,7 @@ const P = {
   projeto: <><path d="M3 21l3.5-1 12-12-2.5-2.5-12 12z" /><path d="M14 6.5l2.5 2.5" /></>,
   seguranca: <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />,
   logistica: <><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></>,
+  medicao: <><path d="M3 17l5-5 4 4 8-8" /><path d="M15 8h5v5" /><path d="M3 21h18" /></>,
   planejamento: <><rect x="9" y="2" width="6" height="5" rx="1" /><rect x="2" y="17" width="6" height="5" rx="1" /><rect x="16" y="17" width="6" height="5" rx="1" /><path d="M12 7v5M5 17v-5h14v5" /></>,
 }
 export function Icon({ nome, tamanho }) {
@@ -58,6 +59,7 @@ const COR = {
   'Aberta': 'ambar', 'Respondida': 'destaque', 'Fechada': 'neutra',
   'Em andamento': 'verde', 'Parada': 'ambar', 'Concluída': 'neutra', 'Não iniciada': 'neutra',
   'Andou': 'verde', 'Não andou': 'vermelho', 'Pendência': 'ambar', 'Comentário': 'neutra',
+  'Rascunho': 'ambar',
 }
 export const corDe = (texto) => COR[texto] || 'neutra'
 export function Tag({ children, cor }) {
@@ -269,7 +271,7 @@ export function Cabecalho({ abas, voltar, titulo, sub }) {
 
 // ── Casca: menu lateral (computador) + barra inferior (celular) ─────────────
 export const ROTULOS = {
-  frentes: 'Frentes', diario: 'Diário', pendencias: 'Pendências', fotos: 'Fotos', materiais: 'Materiais', planejamento: 'Planejamento', mais: 'Mais', painel: 'Painel',
+  frentes: 'Frentes', diario: 'Diário', pendencias: 'Pendências', fotos: 'Fotos', materiais: 'Materiais', planejamento: 'Planejamento', medicao: 'Medição', mais: 'Mais', painel: 'Painel',
   obras: 'Obras', cronograma: 'Frentes e cronograma', empreiteiros: 'Empreiteiros e ambientes', equipe: 'Equipe', empresa: 'Empresa e logo',
 }
 export const CADASTROS = ['obras', 'cronograma', 'empreiteiros', 'equipe', 'empresa']

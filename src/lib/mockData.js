@@ -86,6 +86,28 @@ export const mockContratos = [
   { id: 'c11', obra_id: 'o2', frente_id: 'f11', valor_contratado: 96000 },
 ]
 
+// Medições (só o engenheiro lê). Uma por empreiteiro e período; Rascunho ainda
+// não conta no medido. Valor sugerido = contratado × ambientes concluídos no
+// período ÷ ambientes da frente (lib/medicao.js).
+export const mockMedicoes = [
+  { id: 'md1', obra_id: 'o1', empreiteiro_id: 'e6', periodo_inicio: '2026-09-01', periodo_fim: '2026-09-30', situacao: 'Fechada', fechada_em: '2026-10-01T09:00:00', created_at: '2026-10-01T08:30:00' },
+  { id: 'md2', obra_id: 'o1', empreiteiro_id: 'e1', periodo_inicio: '2026-09-15', periodo_fim: '2026-10-05', situacao: 'Fechada', fechada_em: '2026-10-06T10:00:00', created_at: '2026-10-06T09:40:00' },
+  { id: 'md3', obra_id: 'o1', empreiteiro_id: 'e4', periodo_inicio: '2026-09-22', periodo_fim: '2026-10-10', situacao: 'Fechada', fechada_em: '2026-10-13T08:15:00', created_at: '2026-10-13T08:00:00' },
+  { id: 'md4', obra_id: 'o1', empreiteiro_id: 'e1', periodo_inicio: '2026-10-06', periodo_fim: '2026-10-20', situacao: 'Rascunho', fechada_em: null, created_at: '2026-10-20T07:50:00' },
+  { id: 'md5', obra_id: 'o2', empreiteiro_id: 'e9', periodo_inicio: '2026-10-01', periodo_fim: '2026-10-15', situacao: 'Fechada', fechada_em: '2026-10-16T11:00:00', created_at: '2026-10-16T10:30:00' },
+]
+
+export const mockMedicaoItens = [
+  { id: 'mi1', obra_id: 'o1', medicao_id: 'md1', frente_id: 'f7', valor_sugerido: 41000, valor: 41000, justificativa: null },
+  { id: 'mi2', obra_id: 'o1', medicao_id: 'md1', frente_id: 'f10', valor_sugerido: 0, valor: 0, justificativa: null },
+  { id: 'mi3', obra_id: 'o1', medicao_id: 'md2', frente_id: 'f3', valor_sugerido: 15500, valor: 15500, justificativa: null },
+  { id: 'mi4', obra_id: 'o1', medicao_id: 'md2', frente_id: 'f6', valor_sugerido: 0, valor: 0, justificativa: null },
+  { id: 'mi5', obra_id: 'o1', medicao_id: 'md3', frente_id: 'f4', valor_sugerido: 6780, valor: 8000, justificativa: 'Passagem de fios do pavimento inteiro já feita; combinado adiantar.' },
+  { id: 'mi6', obra_id: 'o1', medicao_id: 'md4', frente_id: 'f3', valor_sugerido: 15500, valor: 15500, justificativa: null },
+  { id: 'mi7', obra_id: 'o1', medicao_id: 'md4', frente_id: 'f6', valor_sugerido: 0, valor: 0, justificativa: null },
+  { id: 'mi8', obra_id: 'o2', medicao_id: 'md5', frente_id: 'f11', valor_sugerido: 0, valor: 19200, justificativa: 'Mobilização do canteiro: 20% na assinatura, previsto no contrato.' },
+]
+
 // Em quais ambientes cada frente acontece, e quando foi concluída em cada um.
 const fa = (id, frente, ambiente, concluido_em = null) => ({
   id, obra_id: frente === 'f11' ? 'o2' : 'o1', frente_id: frente, ambiente_id: ambiente,

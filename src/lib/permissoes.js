@@ -27,6 +27,7 @@ const MATRIZ = {
   planejar:            ['Engenheiro'],
   verCurtoPrazo:       ['Engenheiro', 'Mestre', 'Arquiteta'],
   moverCurtoPrazo:     ['Engenheiro', 'Mestre'],
+  medir:               ['Engenheiro'],
 }
 
 export function pode(role, acao) {
@@ -43,7 +44,7 @@ export function abasDoPlanejamento(role) {
 // Celular: no máximo 5 itens na barra inferior; o que estiver em `noMais` some
 // da barra e aparece dentro de "Mais" (no computador, fica no menu lateral).
 export const MENUS = {
-  Engenheiro: { inicio: 'frentes', itens: ['frentes', 'diario', 'pendencias', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['materiais', 'planejamento'] },
+  Engenheiro: { inicio: 'frentes', itens: ['frentes', 'diario', 'pendencias', 'medicao', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['fotos', 'materiais', 'planejamento'] },
   Mestre:     { inicio: 'diario', itens: ['diario', 'frentes', 'pendencias', 'fotos', 'materiais', 'planejamento', 'mais'], noMais: ['materiais', 'planejamento'] },
   Arquiteta:  { inicio: 'pendencias', itens: ['pendencias', 'frentes', 'fotos', 'materiais', 'planejamento'] },
   Cliente:    { inicio: 'painel', itens: ['painel'] },

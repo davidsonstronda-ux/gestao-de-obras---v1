@@ -58,3 +58,10 @@ export function somarDiasUteis(iso, n) {
 export function formatarDinheiro(valor) {
   return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
+
+// O dia corrido seguinte (sem pular domingo): '2026-10-31' -> '2026-11-01'.
+export function diaSeguinte(iso) {
+  const data = paraData(iso)
+  data.setDate(data.getDate() + 1)
+  return paraIso(data)
+}

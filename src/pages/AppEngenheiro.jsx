@@ -7,6 +7,7 @@ import Pendencias, { Pendencia } from '../screens/pendencias.jsx'
 import Fotos from '../screens/fotos.jsx'
 import Materiais from '../screens/materiais.jsx'
 import Planejamento from '../screens/planejamento.jsx'
+import Medicao from '../screens/medicao.jsx'
 import Obras from '../screens/obras.jsx'
 import { Cronograma, Empreiteiros, Empresa, Equipe, Mais } from '../screens/cadastros.jsx'
 
@@ -32,6 +33,7 @@ export default function AppEngenheiro() {
       case 'fotos': corpo = <Fotos />; break
       case 'materiais': corpo = <Materiais />; break
       case 'planejamento': corpo = <Planejamento />; break
+      case 'medicao': corpo = <Medicao goto={goto} />; break
       case 'mais': corpo = <Mais goto={goto} />; break
       case 'obras': corpo = <Obras />; break
       case 'cronograma': corpo = <Cronograma goto={goto} />; break
