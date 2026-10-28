@@ -422,6 +422,14 @@ export const mockSubtarefas = [
 export const mockNaoRealizados = [
   { id: 'nr1', obra_id: 'o1', atividade_id: 'at5', semana: '2026-10-12', causa: 'Falta material', causa_detalhe: null, autor_id: 'u2' },
   { id: 'nr2', obra_id: 'o1', atividade_id: 'at10', semana: '2026-10-12', causa: 'Aguardando projeto', causa_detalhe: null, autor_id: 'u2' },
+  // Histórico de agosto a outubro (Pareto dos Relatórios): uma causa diferente
+  // por semana, sempre em atividade planejada que não terminou naquela semana.
+  { id: 'nr3', obra_id: 'o1', atividade_id: 'at32', semana: '2026-08-17', causa: 'Chuva', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr4', obra_id: 'o1', atividade_id: 'at35', semana: '2026-09-14', causa: 'Aguardando projeto', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr5', obra_id: 'o1', atividade_id: 'at2', semana: '2026-09-21', causa: 'Outro', causa_detalhe: 'Betoneira quebrada; o conserto levou 3 dias.', autor_id: 'u2' },
+  { id: 'nr6', obra_id: 'o1', atividade_id: 'at7', semana: '2026-09-28', causa: 'Falta gente', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr7', obra_id: 'o1', atividade_id: 'at11', semana: '2026-10-05', causa: 'Aguardando outra frente', causa_detalhe: null, autor_id: 'u2' },
+  { id: 'nr8', obra_id: 'o1', atividade_id: 'at2', semana: '2026-09-07', causa: 'Falta material', causa_detalhe: null, autor_id: 'u2' },
 ]
 
 // Qualidade — aba Vistoria. Nº por obra (#1, #2…). Na Casa Jardins, só um.

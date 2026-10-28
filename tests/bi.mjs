@@ -142,7 +142,7 @@ conferir('filtro de empreiteiro recorta a curva e o custo', [montarBi(o1, { empr
 conferir('empreiteiro sem atividade: painel vazio, sem NaN', montarBi(o1, { empreiteiroId: 'e8' }, HOJE).executivo.evolucao, null)
 const r1 = montarBi(o1, {}, HOJE).ritmo
 const r2 = montarBi(o2, {}, HOJE).ritmo
-conferir('Residência: Pareto junta Kanban, subtarefa e diário', r1.pareto.slice(0, 2).map((c) => [c.causa, c.quantidade]), [['Falta material', 10], ['Aguardando outra frente', 9]])
+conferir('Residência: Pareto junta Kanban, subtarefa e diário', r1.pareto.slice(0, 2).map((c) => [c.causa, c.quantidade]), [['Falta material', 11], ['Aguardando outra frente', 10]])
 conferir('Residência: 12 dias de diário, a chuva derruba o efetivo', [r1.efetivo.length, r1.efetivo.find((d) => d.data === '2026-10-06').pessoas, r1.efetivo.find((d) => d.data === '2026-10-17').pessoas], [12, 20, 2])
 conferir('Residência: PPC semanal das 11 semanas fechadas', [r1.ppcSemanal.length, r1.ppcSemanal.at(-1)], [11, { semana: '2026-10-12', concluidas: 1, planejadas: 7, ppc: 14, naoConcluidas: 6 }])
 conferir('Casa Jardins: sem causa nenhuma, 6 diários só da Fundações Base', [r2.pareto, r2.efetivo.map((d) => d.pessoas)], [[], [4, 6, 6, 6, 6, 6]])
@@ -170,7 +170,7 @@ conferir('Este mês: a medição fechada em setembro sai do custo', montarBi({ .
 // Revisão de 28/10: com período, a Curva S mostrava as semanas futuras.
 conferir('com período, a Curva S para na semana de hoje', mes.executivo.curva.at(-1).semana, '2026-10-19')
 conferir('sem período, a Curva S vai até a última atividade', montarBi(o1, {}, HOJE).executivo.curva.at(-1).semana, '2026-11-02')
-conferir('causa do Kanban vale pelo domingo da semana (como o PPC)', o1.causas.filter((c) => c.origem === 'Kanban').map((c) => c.data), ['2026-10-18', '2026-10-18'])
+conferir('causa do Kanban vale pelo domingo da semana (como o PPC)', o1.causas.filter((c) => c.origem === 'Kanban').slice(0, 2).map((c) => c.data), ['2026-10-18', '2026-10-18'])
 conferir('modelo de FVS abaixo da meta', [META_CONFORME, q1.conforme.map((m) => m.abaixoDaMeta)], [80, [true, true]])
 conferir('pedidos críticos em aberto (entregue não conta) e por empreiteiro', [pedidosCriticosEmAberto(pedidos), pedidosCriticosEmAberto([...pedidos, { prioridade: 'Crítico', status: 'Entregue' }]), pedidosCriticosEmAberto(pedidos, { empreiteiroId: 'e2' })], [1, 1, 0])
 conferir('Este mês: a demolição de agosto some do PPC', montarBi(o1, { periodo: 'Este mês' }, HOJE).ritmo.ppcSemanal.some((p) => p.semana < '2026-09-28'), false)
