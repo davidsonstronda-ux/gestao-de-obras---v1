@@ -161,6 +161,12 @@ const CLIMA_O1 = {
 // Pessoas por empreiteiro nos últimos dias da obra 1. Só aparece quem estava na
 // obra: quem "não andou" por falta de gente ou aguardando projeto não veio.
 const EQUIPES_O1 = {
+  '2026-10-05': { e1: 4, e2: 3, e4: 3, e6: 4, e10: 3 },
+  '2026-10-06': { e1: 4, e2: 3, e3: 3, e4: 3, e6: 4, e10: 3 },
+  '2026-10-07': { e1: 4, e2: 3, e3: 3, e4: 3, e6: 3, e10: 3 },
+  '2026-10-08': { e2: 3, e3: 3, e4: 3, e6: 4, e10: 2 },
+  '2026-10-09': { e2: 2, e3: 3, e4: 2, e6: 4, e10: 2 },
+  '2026-10-10': { e2: 3, e3: 2, e4: 2, e6: 3, e10: 2 },
   '2026-10-13': { e1: 4, e2: 3, e3: 3, e4: 2, e6: 3 },
   '2026-10-14': { e1: 4, e3: 3, e4: 2 },
   '2026-10-15': { e1: 3, e4: 2 },
@@ -176,7 +182,8 @@ export const mockDiarios = [
     equipes: equipesDe(data), ocorrencias: OCORRENCIAS[data] || '', autor_id: 'u2',
   })),
   ...DIAS_O2.map((data) => ({
-    id: `d2-${data}`, obra_id: 'o2', data, clima: 'Sol', equipes: [], ocorrencias: '', autor_id: 'u1',
+    id: `d2-${data}`, obra_id: 'o2', data, clima: data === '2026-10-15' ? 'Nublado' : 'Sol',
+    equipes: [{ empreiteiro_id: 'e9', pessoas: data === '2026-10-13' ? 4 : 6 }], ocorrencias: '', autor_id: 'u1',
   })),
 ]
 
@@ -364,7 +371,17 @@ export const mockAtividades = [
   at('at10', 'o1', 'at9', 1, 'Forro de gesso', '2026-10-06', '2026-10-31', 'f2', 40, 'Em andamento'),
   at('at11', 'o1', 'at9', 2, 'Revestimento da suíte master', '2026-09-29', '2026-10-17', 'f6', 70, 'Em andamento'),
   at('at12', 'o1', 'at9', 3, 'Bancadas de mármore', '2026-10-19', '2026-11-07', 'f5', 0, 'A fazer'),
-  at('at13', 'o1', null, 6, 'Piso da área gourmet (saiu do escopo)', '2026-11-09', '2026-11-20', null, 0, 'A fazer', { arquivada: true }),
+  at('at13', 'o1', null, 9, 'Piso da área gourmet (saiu do escopo)', '2026-11-09', '2026-11-20', null, 0, 'A fazer', { arquivada: true }),
+  // Histórico de agosto a outubro, para a Curva S e o PPC dos Relatórios nascerem
+  // com semanas passadas. A estrutura do drywall atrasou e saiu depois do prazo.
+  at('at30', 'o1', null, 7, 'Alvenaria de vedação', '2026-08-03', '2026-09-19', null, 0, 'A fazer'),
+  at('at31', 'o1', 'at30', 1, 'Marcação e primeira fiada', '2026-08-03', '2026-08-08', 'f7', 100, 'Concluído', { concluida_em: '2026-08-07' }),
+  at('at32', 'o1', 'at30', 2, 'Elevação das paredes', '2026-08-10', '2026-09-05', 'f7', 100, 'Concluído', { concluida_em: '2026-09-04' }),
+  at('at33', 'o1', 'at30', 3, 'Vergas, contravergas e encunhamento', '2026-09-07', '2026-09-19', 'f7', 100, 'Concluído', { concluida_em: '2026-09-18' }),
+  at('at34', 'o1', null, 8, 'Drywall e tabicas', '2026-09-08', '2026-10-16', null, 0, 'A fazer'),
+  at('at35', 'o1', 'at34', 1, 'Estrutura metálica', '2026-09-08', '2026-09-19', 'f12', 100, 'Concluído', { concluida_em: '2026-09-23' }),
+  at('at36', 'o1', 'at34', 2, 'Fechamento em placas', '2026-09-21', '2026-10-03', 'f12', 100, 'Concluído', { concluida_em: '2026-10-02' }),
+  at('at37', 'o1', 'at34', 3, 'Juntas e tabicas', '2026-10-05', '2026-10-16', 'f12', 100, 'Concluído', { concluida_em: '2026-10-16' }),
   at('at20', 'o2', null, 1, 'Fundação', '2026-10-01', '2026-11-15', null, 0, 'A fazer'),
   at('at21', 'o2', 'at20', 1, 'Estacas e blocos', '2026-10-01', '2026-11-15', 'f11', 35, 'Em andamento'),
 ]

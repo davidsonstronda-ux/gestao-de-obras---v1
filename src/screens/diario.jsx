@@ -4,9 +4,8 @@ import { CLIMAS, diaVizinho, validarDiario } from '../lib/diario.js'
 import { MOTIVOS } from '../lib/atraso.js'
 import { hoje } from '../lib/config.js'
 import { formatarData, formatarDiaMes, diaDaSemana } from '../lib/datas.js'
-import { Cabecalho, Carregando, EstadoVazio, Erro, Icon, TituloSecao, useAviso, useCarregar } from '../components/index.jsx'
+import { Cabecalho, Carregando, EstadoVazio, Erro, ICONE_CLIMA, Icon, TituloSecao, useAviso, useCarregar } from '../components/index.jsx'
 
-const ICONE_CLIMA = { Sol: 'sol', Nublado: 'nublado', Chuva: 'chuva' }
 
 export default function Diario({ goto }) {
   const avisar = useAviso()

@@ -59,6 +59,11 @@ export function formatarDinheiro(valor) {
   return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
+// Para cartão pequeno: 141500 -> "R$ 141,5 mil".
+export function formatarDinheiroCurto(valor) {
+  return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1 })
+}
+
 // O dia corrido seguinte (sem pular domingo): '2026-10-31' -> '2026-11-01'.
 export function diaSeguinte(iso) {
   const data = paraData(iso)

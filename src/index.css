@@ -26,6 +26,14 @@
   --ambar-texto: #8A5600;
   --verde: #237A4B;
   --vermelho-claro: #FCE8E6;
+  --chuva-claro: #E4F0F8;       /* fundo do dia de chuva nos Relatórios */
+  /* Uma cor por categoria nos Relatórios (ex.: empresa na rosca), distintas entre si. */
+  --cat-1: #007A87;
+  --cat-2: #E2574C;
+  --cat-3: #F0A93B;
+  --cat-4: #26333A;
+  --cat-5: #237A4B;
+  --cat-6: #8C99A0;
   --fundo: #F2F4F5;
   --cartao: #FFFFFF;
   --campo: #F7F9FA;
@@ -788,6 +796,163 @@ em.obrigatorio { font-style: normal; color: var(--vermelho-forte); }
 }
 
 /* No papel: só o relatório, cores mantidas, nada quebrado no meio. */
+/* ---------- Relatórios (BI da obra) ---------- */
+/* Gráficos feitos à mão: barras e rosca em CSS, linhas em SVG. Previsto em
+   cinza, real em turquesa; vermelho só para o que está atrás. */
+.conteudo-bi { max-width: 1280px; }
+.grade-bi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+/* Lado a lado só com espaço: abaixo disso cada metade fica estreita demais para tabela e gráficos. */
+@media (max-width: 1179px) { .grade-bi { grid-template-columns: 1fr; } }
+.painel-bi { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.painel-bi.largo { grid-column: 1 / -1; }
+.painel-bi-cab h2 { margin: 0; font-size: 20px; color: var(--escuro); }
+.painel-bi-cab p { margin: 2px 0 0; font-size: 15px; color: var(--texto-2); }
+.bi-kpis .kpi { border-left: 0; border-right: 0; border-bottom: 0; border-radius: 0; background: var(--campo); }
+.bi-kpis .valor.bi-dinheiro { font-size: 30px; padding-top: 9px; }
+.bi-seta { display: flex; align-items: center; gap: 4px; }
+.kpi.verde .bi-seta svg { transform: rotate(-90deg); color: var(--verde); }
+.kpi.vermelho .bi-seta svg { transform: rotate(90deg); }
+.bi-exec-graficos { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; }
+.bi-grafico { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bi-grafico figcaption { font-size: 15px; font-weight: 700; color: var(--escuro); }
+.bi-legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--texto-2); }
+.bi-legenda li { display: flex; align-items: center; gap: 6px; }
+.bi-cor { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.bi-cor.real { background: var(--destaque); }
+.bi-cor.previsto { background: #8C99A0; height: 3px; }
+.bi-cor.nao { background: var(--trilho); }
+.bi-rolavel { overflow-x: auto; padding-bottom: 4px; }
+.curva-s { display: block; width: 100%; height: auto; }
+.curva-s .grade { stroke: var(--divisor); stroke-width: 1; }
+.curva-s .eixo { font-family: var(--mono); font-size: 11px; fill: var(--texto-2); }
+.curva-s .eixo.forte { fill: var(--escuro); font-weight: 700; }
+.curva-s .hoje { stroke: var(--escuro); stroke-width: 1; stroke-dasharray: 4 3; }
+.curva-s .area-real { fill: var(--destaque); fill-opacity: .14; }
+.curva-s .linha-prevista { fill: none; stroke: #8C99A0; stroke-width: 2.5; stroke-dasharray: 6 4; }
+.curva-s .linha-real { fill: none; stroke: var(--destaque); stroke-width: 3; stroke-linejoin: round; }
+.curva-s .ponto-real { fill: var(--cartao); stroke: var(--destaque-forte); stroke-width: 2; }
+.bi-ppc { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.bi-ppc p { margin: 0; font-size: 14px; color: var(--texto-2); }
+.rosca { --v: 0%; width: 148px; aspect-ratio: 1; border-radius: 50%; background: conic-gradient(var(--destaque) 0 var(--v), var(--trilho) var(--v) 100%); display: grid; place-items: center; }
+.rosca-furo { width: 64%; aspect-ratio: 1; border-radius: 50%; background: var(--cartao); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.rosca-furo b { font-family: var(--mono); font-size: 30px; line-height: 1; color: var(--escuro); }
+.rosca-furo span { font-size: 12px; font-weight: 600; color: var(--texto-2); }
+.bi-sem-dados { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px 16px; border: 1px dashed #B4C0C6; border-radius: var(--raio); background: var(--campo); text-align: center; min-height: 160px; }
+.bi-sem-dados .ico { width: 48px; height: 48px; border-radius: 50%; background: var(--claro); color: var(--texto-2); display: grid; place-items: center; }
+.bi-sem-dados .ico svg { width: 24px; height: 24px; }
+.bi-sem-dados b { color: var(--escuro); }
+.bi-sem-dados p { margin: 0; max-width: 300px; font-size: 14px; color: var(--texto-2); }
+.bi-cor.sim { background: var(--verde); }
+.bi-cor.nao-feita { background: var(--vermelho); }
+.bi-cor.chuva { background: var(--chuva-claro); border: 1px solid #A9C9E0; }
+/* PPC por semana: colunas 100% empilhadas, linha da meta por cima. */
+.bi-colunas { display: grid; grid-template-columns: repeat(var(--n), minmax(40px, 1fr)); gap: 6px; padding-top: 4px; min-width: calc(var(--n) * 46px); }
+.bi-coluna { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bi-coluna b { font-size: 12px; color: var(--escuro); }
+.bi-pilha { width: 100%; max-width: 34px; height: 140px; display: flex; flex-direction: column; border-radius: 3px; overflow: hidden; background: var(--trilho); }
+.bi-pilha i { display: block; flex-basis: 0; }
+.bi-pilha .sim { background: var(--verde); }
+.bi-pilha .nao { background: var(--vermelho); }
+.bi-coluna .data-curta, .bi-dia .data-curta { font-size: 11px; color: var(--texto-2); }
+/* A meta do PPC: um traço em cada pilha, na mesma altura (--meta vem da tela). */
+.bi-pilha { position: relative; }
+.bi-pilha::after { content: ''; position: absolute; left: -4px; right: -4px; bottom: var(--meta); border-top: 2px dashed var(--escuro); }
+.bi-cor.meta { height: 0; border-top: 2px dashed var(--escuro); }
+/* Barras deitadas (Pareto e afins). */
+.bi-barras-h { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bi-barras-h li { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'nome valor' 'trilho trilho'; align-items: baseline; gap: 2px 8px; font-size: 14px; }
+.bi-barras-h .nome { grid-area: nome; font-weight: 600; color: var(--escuro); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bi-barras-h .trilho { grid-area: trilho; height: 14px; border-radius: 3px; background: var(--trilho); overflow: hidden; }
+.bi-barras-h .trilho i { display: block; height: 100%; background: var(--destaque); border-radius: 3px; }
+.bi-barras-h .trilho i.vermelho { background: var(--vermelho); }
+.bi-barras-h .trilho i.verde { background: var(--verde); }
+.bi-barras-h .valor { grid-area: valor; font-size: 12px; color: var(--texto-2); white-space: nowrap; }
+/* Clima & efetivo: uma coluna por dia de diário; chuva com fundo azulado. */
+.bi-efetivo { display: grid; grid-template-columns: repeat(var(--n), minmax(38px, 1fr)); gap: 4px; min-width: calc(var(--n) * 42px); }
+.bi-dia { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border-radius: 4px; }
+.bi-dia.chuva { background: var(--chuva-claro); }
+.bi-dia .clima { color: var(--ambar-texto); }
+.bi-dia .clima.nublado { color: var(--escuro-2); }
+.bi-dia .clima.chuva { color: #2F6E9E; }
+.bi-dia-barra { width: 100%; max-width: 28px; height: 110px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.bi-dia-barra b { font-size: 12px; color: var(--escuro); }
+.bi-dia-barra i { display: block; width: 100%; background: var(--destaque); border-radius: 3px 3px 0 0; min-height: 2px; }
+.bi-dia .dia-semana { font-size: 11px; color: var(--texto-2); margin-top: -4px; }
+/* Mini-cartões (fluxo dos contratos, pedidos por etapa). */
+.bi-mini { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 8px; }
+.bi-mini-cartao { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--borda); border-top: 4px solid var(--borda); border-radius: var(--raio); background: var(--campo); min-width: 0; }
+.bi-mini-cartao.destaque { border-top-color: var(--destaque); }
+.bi-mini-cartao.verde { border-top-color: var(--verde); }
+.bi-mini-cartao .rotulo { font-size: 12px; line-height: 1.2; }
+.bi-mini-cartao b { font-size: 26px; line-height: 1.1; color: var(--escuro); }
+.bi-mini-cartao .nota { font-size: 12px; color: var(--texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Matriz de empreiteiros: a barra do % medido mora dentro da célula. */
+.bi-tabela { width: 100%; min-width: 460px; border-collapse: collapse; font-size: 14px; }
+.bi-tabela th { text-align: left; font-size: 12px; color: var(--texto-2); font-weight: 700; padding: 6px 8px; border-bottom: 2px solid var(--divisor); }
+.bi-tabela td { padding: 7px 8px; border-bottom: 1px solid var(--divisor); }
+.bi-tabela .dir { text-align: right; white-space: nowrap; }
+.bi-tabela .num { font-family: var(--mono); }
+.bi-celula-barra { display: flex; align-items: center; gap: 6px; min-width: 110px; }
+.bi-celula-barra .trilho { flex: 1; height: 10px; border-radius: 99px; background: var(--trilho); overflow: hidden; }
+.bi-celula-barra .trilho i { display: block; height: 100%; background: var(--destaque); }
+.bi-celula-barra b { font-size: 12px; width: 36px; text-align: right; }
+/* Materiais: alerta de atrasados, lead time e estoque. */
+.bi-alerta { padding: 10px 12px; border-radius: var(--raio); border: 1px solid; }
+.bi-alerta.vermelho { background: var(--vermelho-claro); border-color: var(--vermelho); color: #A3322A; }
+.bi-alerta.verde { background: #E5F3EB; border-color: #9CCBB0; color: var(--verde); }
+.bi-alerta-topo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 600; }
+.bi-alerta-topo b { font-size: 24px; line-height: 1; }
+.bi-alerta-extra { margin-left: auto; font-size: 13px; color: var(--ambar-texto); }
+.bi-alerta ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; color: var(--texto); }
+.bi-lead { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.bi-lead-numero { display: flex; align-items: center; gap: 8px; }
+.bi-lead-numero b { font-size: 44px; line-height: 1; color: var(--escuro); }
+.bi-lead-numero span { font-size: 13px; color: var(--texto-2); }
+.bi-lead .bi-colunas-p { flex: 1; min-width: 200px; }
+.bi-colunas-p { display: grid; grid-template-columns: repeat(var(--n), minmax(32px, 1fr)); gap: 6px; }
+.bi-coluna-p { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.bi-coluna-p b { font-size: 12px; color: var(--escuro); }
+.bi-coluna-p .caixa { width: 100%; max-width: 30px; height: 70px; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--borda); }
+.bi-coluna-p .caixa i { flex: 1; display: block; background: var(--destaque); border-radius: 2px 2px 0 0; }
+.bi-coluna-p .caixa i.bi-sai { background: var(--ambar); }
+.bi-coluna-p .data-curta { font-size: 11px; color: var(--texto-2); }
+.bi-cor.bi-sai { background: var(--ambar); }
+.bi-criticos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bi-criticos li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 6px 10px; border-left: 4px solid var(--vermelho); background: var(--vermelho-claro); border-radius: 4px; font-size: 14px; }
+.bi-criticos .num { font-family: var(--mono); font-size: 13px; color: #A3322A; }
+.bi-nota { margin: 0; font-size: 14px; color: var(--texto-2); }
+/* Barra de filtros (some no papel). */
+.bi-filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding: 12px 14px; }
+.bi-filtro { display: flex; flex-direction: column; gap: 4px; }
+.bi-filtro .rotulo { font-size: 13px; }
+.bi-filtro .filtro { min-width: 200px; }
+.bi-imprimir { margin-left: auto; }
+.bi-aviso { color: var(--ambar-texto) !important; font-size: 13px !important; margin-top: 4px !important; }
+/* Qualidade: rosca por empresa, mapa por local. */
+.bi-rosca-empresas { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.bi-rosca-empresas .rosca { width: 132px; flex-shrink: 0; }
+.bi-rosca-empresas .rosca-furo b { font-size: 26px; }
+.bi-legenda.coluna { flex-direction: column; flex: 1; min-width: 180px; gap: 6px; font-size: 14px; color: var(--texto); }
+.bi-legenda.coluna li { display: grid; grid-template-columns: 14px 1fr auto; column-gap: 8px; align-items: center; }
+.bi-legenda.coluna .bi-cor { height: 14px; }
+.bi-legenda.coluna .nome { font-weight: 600; }
+.bi-legenda.coluna b { font-family: var(--mono); }
+.bi-legenda.coluna .detalhe { grid-column: 2 / -1; font-size: 12px; color: var(--texto-2); }
+.bi-mapa { display: flex; flex-wrap: wrap; gap: 4px; }
+.bi-bloco { --forca: 1; min-height: 72px; padding: 8px 10px; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+  background: color-mix(in srgb, var(--vermelho) calc(18% + var(--forca) * 52%), var(--cartao)); color: var(--texto); border: 1px solid var(--vermelho); min-width: 0; }
+.bi-bloco b { font-size: 14px; line-height: 1.2; overflow-wrap: anywhere; }
+.bi-bloco span { font-size: 12px; font-family: var(--mono); }
+.so-impressao { display: none; }
+@media (max-width: 899px) {
+  .grade-bi, .bi-exec-graficos { grid-template-columns: 1fr; }
+  .painel-bi { padding: 12px; }
+  .bi-kpis { grid-template-columns: 1fr; }
+  .bi-mini { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+  .curva-s { min-width: var(--min); }
+  .bi-kpis .valor.bi-dinheiro { font-size: 28px; padding-top: 0; }
+}
+
 @media print {
   @page { margin: 12mm; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -808,4 +973,14 @@ em.obrigatorio { font-style: normal; color: var(--vermelho-forte); }
   .rel-registro { grid-template-columns: 120px 1fr; }
   .rel-dados { grid-template-columns: 1fr 1fr; }
   .tabela-rel { display: table; }
+  /* Relatórios (BI): cabeçalho e rodapé só no papel, painéis empilhados sem rolagem. */
+  .so-impressao { display: flex !important; }
+  .relatorio-bi { gap: 12px; }
+  .grade-bi { grid-template-columns: 1fr !important; gap: 12px; }
+  .painel-bi { border: 1px solid var(--borda); break-inside: avoid; padding: 10px 12px; }
+  .bi-grafico, .bi-alerta, .bi-kpis { break-inside: avoid; }
+  .bi-rolavel { overflow: visible; }
+  .curva-s, .bi-colunas, .bi-efetivo, .bi-tabela { min-width: 0 !important; }
+  .bi-kpis { grid-template-columns: repeat(3, 1fr) !important; }
 }
+.relatorio-bi { display: flex; flex-direction: column; gap: 14px; }

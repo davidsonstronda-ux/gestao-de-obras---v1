@@ -37,6 +37,7 @@ Login · Criar conta · Aguardando liberação
 └── Cliente:    Painel da obra
 ```
 
+- Relatórios (BI da obra, acrescentado em 28/10) só no menu do engenheiro; no celular fica dentro de "Mais".
 - Qualidade (acrescentada em 23/10) entra no menu do engenheiro, do mestre e da arquiteta; no celular fica dentro de "Mais". A arquiteta ganhou "Mais" (Materiais, Planejamento, Qualidade) e a barra dela fica **Pendências · Frentes · Fotos · Mais**.
 
 - Barra inferior do engenheiro no celular: **Frentes · Diário · Pendências · Fotos · Mais** ("Mais" abre Cadastros).
@@ -599,6 +600,20 @@ Usuários de exemplo:
 - **Barra (não sai no papel):** "← Voltar" e **Imprimir** (abre a impressão do navegador; dá para salvar em PDF).
 - **Papel:** conteúdo conforme o plano, fonte ~12px, cores das etiquetas mantidas, registro e linhas de tabela sem quebrar no meio, margens de 12 mm.
 - **Estados:** carregando; erro com "Tentar de novo"; seção sem nada mostra "Nada com os filtros aplicados." em vez de sumir.
+
+---
+
+## Tela: Relatórios (BI da obra) — acrescentada em 28/10
+
+- **Quem:** só o engenheiro. Item "Relatórios" no menu lateral; no celular, dentro de "Mais".
+- **Topo:** a barra de filtros (Empreiteiro em lista; Período no seletor Tudo · Este mês · Últimas 4 semanas) e o botão **Imprimir relatório executivo**. O que o período não muda (posição de hoje) e o que não tem empreiteiro aparecem como aviso em âmbar no cabeçalho do painel; regras no plano.
+- **Ordem dos painéis:** Executivo (largura toda) · Ritmo & Produção · Qualidade & Entrega · Contratos & Medições · Materiais. Lado a lado só a partir de 1180 px de tela.
+- **Painéis:** computador em grade de 2 colunas; celular empilhado. Gráfico mais largo que a tela rola de lado dentro do próprio cartão. Todo gráfico tem título e legenda quando usa cor.
+- **Executivo:** 3 indicadores grandes (Evolução "34% · prev. 36%" com seta; Prazo em dias até a entrega; Custo medido em R$), Curva S em SVG (eixo de semanas; previsto em cinza, real em turquesa com área) e PPC geral em rosca com o % no meio.
+- **Ritmo & Produção, Contratos & Medições, Materiais, Qualidade & Entrega:** conforme o plano.
+- **Painel sem dado:** cartão com ícone, "Painel sem dados" e de onde o dado vem. Nunca NaN.
+- **Estados:** carregando; erro com "Tentar de novo"; obra sem nada: "Esta obra ainda não tem registros para o painel."
+- **Papel:** igual ao relatório da Qualidade: margens de 12 mm, cores mantidas, painel não quebra no meio.
 
 ---
 

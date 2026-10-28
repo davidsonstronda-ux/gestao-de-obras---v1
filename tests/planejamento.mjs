@@ -38,11 +38,11 @@ const o1 = mockAtividades.filter((a) => a.obra_id === 'o1')
 const eap = montarEap(o1, cal1)
 const e = porId(eap)
 conferir('código automático pela ordem', eap.map((i) => i.codigo),
-  ['1', '2', '3', '3.1', '3.2', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', null])
+  ['1', '2', '3', '3.1', '3.2', '4', '4.1', '4.2', '5', '5.1', '5.2', '5.3', '6', '6.1', '6.2', '6.3', '7', '7.1', '7.2', '7.3', null])
 conferir('nível de cada linha', [e.at1.nivel, e.at10.nivel], [0, 1])
 conferir('grupo pega início e fim das filhas', [e.at9.ehGrupo, e.at9.inicio, e.at9.fim], [true, '2026-09-29', '2026-11-07'])
 conferir('folha não é grupo', e.at12.ehGrupo, false)
-conferir('arquivada fica sem código e fora por padrão', [e.at13.codigo, visiveisNaEap(eap, false).some((i) => i.id === 'at13'), visiveisNaEap(eap, true).length], [null, false, 13])
+conferir('arquivada fica sem código e fora por padrão', [e.at13.codigo, visiveisNaEap(eap, false).some((i) => i.id === 'at13'), visiveisNaEap(eap, true).length], [null, false, 21])
 conferir('grupo conta as subatividades', e.at9.subatividades, 3)
 
 const cal7 = { dias_semana: [0, 1, 2, 3, 4, 5, 6], feriados: [] }
@@ -65,11 +65,11 @@ const grupoArquivado = montarEap([
 conferir('grupo arquivado resume as filhas arquivadas', [grupoArquivado.progresso, grupoArquivado.inicio, grupoArquivado.fim], [50, '2026-01-01', '2026-01-10'])
 
 conferir('não dá para pôr a atividade dentro dela mesma nem de uma filha', paisPossiveis(eap, o1, 'at9').map((i) => i.id),
-  ['at1', 'at2', 'at3', 'at4', 'at5', 'at6', 'at7', 'at8'])
+  ['at1', 'at2', 'at3', 'at4', 'at5', 'at6', 'at7', 'at8', 'at30', 'at31', 'at32', 'at33', 'at34', 'at35', 'at36', 'at37'])
 conferir('pai válido', [paiValido(o1, 'at9', 'at10'), paiValido(o1, 'at9', 'at9'), paiValido(o1, 'at12', 'at13'), paiValido(o1, 'at12', 'at3'), paiValido(o1, null, null)],
   [false, false, false, true, true])
 conferir('subir troca com a irmã de cima', trocarOrdem(o1, 'at9', -1), [{ id: 'at9', ordem: 4 }, { id: 'at6', ordem: 5 }])
-conferir('descer pula a arquivada: já é a última', trocarOrdem(o1, 'at9', 1), null)
+conferir('descer pula a arquivada: já é a última', trocarOrdem(o1, 'at34', 1), null)
 conferir('primeira não sobe', trocarOrdem(o1, 'at4', -1), null)
 
 conferir('% aceita 0 a 100, vazio é 0', [lerPercentual('45'), lerPercentual(''), lerPercentual('100')], [45, 0, 100])
@@ -153,7 +153,7 @@ conferir('entram as que cruzam a semana e as acumuladas; concluída antes (demol
   ['at2', 'at4', 'at5', 'at7', 'at8', 'at10', 'at11', 'at12'])
 conferir('o revestimento (fim 17/10) entra como acumulado', daSemana.filter((a) => a.acumulada).map((a) => a.id), ['at11'])
 conferir('PPC desta semana: 2 de 8 (reboco e quadro)', ppcDaSemana(daSemana), { concluidas: 2, planejadas: 8, ppc: 25 })
-conferir('PPC da semana em que a demolição terminou: 1 de 1', ppcDaSemana(atividadesDaSemana(eap, semanaDe('2026-08-26'))), { concluidas: 1, planejadas: 1, ppc: 100 })
+conferir('PPC da semana em que a demolição terminou: 1 de 2 (a elevação das paredes seguia)', ppcDaSemana(atividadesDaSemana(eap, semanaDe('2026-08-26'))), { concluidas: 1, planejadas: 2, ppc: 50 })
 conferir('o reboco (concluído em 19/10) aparece em andamento numa semana antiga', atividadesDaSemana(eap, semanaDe('2026-09-16')).find((a) => a.id === 'at2').coluna, 'Em andamento')
 conferir('sem planejadas, PPC vazio', ppcDaSemana([]).ppc, null)
 conferir('faixa do PPC (meta 80%)', [faixaPpc(80), faixaPpc(79), faixaPpc(50), faixaPpc(49), faixaPpc(null)], ['Bom', 'Regular', 'Regular', 'Baixo', null])
@@ -201,7 +201,7 @@ conferir('obra 2 grava o calendário dela', [o2depois.dias_semana, o2depois.feri
 dados.definirContexto({ obraId: 'o1' })
 const o1dados = (await dados.listarPlanejamento()).data
 conferir('obra 1 não pegou o calendário da obra 2', [o1dados.calendario.dias_semana, o1dados.calendario.feriados.length], [[1, 2, 3, 4, 5, 6], 3])
-conferir('obra 1: 13 atividades, nenhuma da obra 2', [o1dados.itens.length, o1dados.itens.some((i) => i.obra_id !== 'o1')], [13, false])
+conferir('obra 1: 21 atividades, nenhuma da obra 2', [o1dados.itens.length, o1dados.itens.some((i) => i.obra_id !== 'o1')], [21, false])
 conferir('a linha traz o nome da frente ligada', porId(o1dados.itens).at5.frente, 'Impermeabilização áreas molhadas')
 // Forro: 23 dias úteis de 06 a 31/10, 12 já passados antes de 20/10.
 conferir('a lista já vem com o previsto de hoje (20/10)', [porId(o1dados.itens).at10.previsto, porId(o1dados.itens).at1.previsto], [52, 100])

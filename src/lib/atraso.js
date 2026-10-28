@@ -4,6 +4,8 @@
 import { diasEntre, somarDiasUteis } from './datas.js'
 
 export const RISCOS = ['Estourou a folga', 'Atenção', 'No prazo']
+// Situação da frente, na ordem em que ela anda. Texto idêntico ao CHECK de `frentes`.
+export const SITUACOES_FRENTE = ['Não iniciada', 'Em andamento', 'Concluída']
 export const LIMITE_ATENCAO = 5 // dias úteis de folga ou menos = Atenção [DESCOBRIR NO USO]
 
 export const MOTIVOS = [

@@ -162,7 +162,7 @@ conferir('importada nasce A fazer, 0%, ligada ao pai e com as datas (alimenta o 
 conferir('substituir: as atuais vão para Arquivadas, nada se apaga', [(await dados.importarCronograma(linhasModelo, 'substituir')).data, (await ativas()).map((i) => i.codigo),
   (await dados.listarPlanejamento()).data.itens.filter((i) => i.arquivada).length], [{ criadas: 4, arquivadas: 6 }, ['1', '2', '2.1', '2.2'], 6])
 dados.definirContexto({ obraId: 'o1' })
-conferir('a outra obra não foi tocada', (await dados.listarPlanejamento()).data.itens.length, 13)
+conferir('a outra obra não foi tocada', (await dados.listarPlanejamento()).data.itens.length, 21)
 await dados.entrarComo('u3')
 dados.definirContexto({ obraId: 'o1' })
 conferir('arquiteta não importa', (await dados.importarCronograma(linhasModelo, 'adicionar')).erro, 'Só o engenheiro importa cronograma.')

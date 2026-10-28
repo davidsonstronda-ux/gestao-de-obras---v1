@@ -1,7 +1,7 @@
 # Plano do Projeto — Gestão de Obras (nome provisório)
 
 > Fonte da verdade deste projeto. Quando mudar de ideia, mude aqui primeiro.
-> Última atualização: 23/10/2026 — acrescentado o módulo **Qualidade** (Vistoria, FVS, Gemba Walk e relatório imprimível), decidido pelo Davidson em 23/10 a partir do modelo do curso: a aba de pendências do modelo se chama **Vistoria** aqui, para não confundir com as Pendências de projeto; engenheiro e mestre registram, arquiteta só vê, cliente não vê. Antes, também em 23/10 — a Medição foi antecipada (decisão do Davidson em 23/10): construída agora, ainda no mock, seguindo a especificação dos PRDs; nº do boletim por empreiteiro, digitar % ou R$ e trava de 100% do contratado vieram do modelo do curso. Antes: 21/10/2026 — acrescentado o módulo Planejamento (Last Planner + EAP), decidido pelo Davidson em 21/10: atividades ligadas às frentes, mestre só no Curto prazo, causas = motivos do diário. Antes: 20/10/2026 — Etapas 1 e 3 escritas, Etapa 2 pendente. PRD-FRONTEND.md e PRD-BACKEND.md gerados em 20/10. Os 7 pontos que estavam [A CONFIRMAR] foram decididos pelo Davidson em 20/10 (ver "Decisões de 20/10" na Etapa 3). Resolvido em 20/10: são várias obras, com seletor; a Medição foi para a segunda entrega.
+> Última atualização: 28/10/2026 — acrescentado o módulo **Relatórios** (o BI da obra), decidido pelo Davidson em 28/10 a partir do modelo do curso: só o engenheiro vê (tem valores em R$); o fluxo dos contratos sai da situação da frente, sem etapa nova no contrato. Antes, em 23/10 — acrescentado o módulo **Qualidade** (Vistoria, FVS, Gemba Walk e relatório imprimível), decidido pelo Davidson em 23/10 a partir do modelo do curso: a aba de pendências do modelo se chama **Vistoria** aqui, para não confundir com as Pendências de projeto; engenheiro e mestre registram, arquiteta só vê, cliente não vê. Antes, também em 23/10 — a Medição foi antecipada (decisão do Davidson em 23/10): construída agora, ainda no mock, seguindo a especificação dos PRDs; nº do boletim por empreiteiro, digitar % ou R$ e trava de 100% do contratado vieram do modelo do curso. Antes: 21/10/2026 — acrescentado o módulo Planejamento (Last Planner + EAP), decidido pelo Davidson em 21/10: atividades ligadas às frentes, mestre só no Curto prazo, causas = motivos do diário. Antes: 20/10/2026 — Etapas 1 e 3 escritas, Etapa 2 pendente. PRD-FRONTEND.md e PRD-BACKEND.md gerados em 20/10. Os 7 pontos que estavam [A CONFIRMAR] foram decididos pelo Davidson em 20/10 (ver "Decisões de 20/10" na Etapa 3). Resolvido em 20/10: são várias obras, com seletor; a Medição foi para a segunda entrega.
 > O rascunho anterior (5 obras, foco em medição) ficou guardado em "PLANO-DO-PROJETO (rascunho anterior - 5 obras).md".
 
 ## Em uma frase
@@ -157,6 +157,23 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 - **Carregamento:** a tela de Qualidade só é baixada quando alguém a abre, para não pesar na abertura do app (o pacote principal tinha passado do limite de 500 KB do build).
 - **Vazio:** "Nenhum registro de vistoria nesta obra. Fotografe o primeiro problema."
 
+### Relatórios — o BI da obra (só engenheiro) — acrescentado em 28/10
+- **Conceito:** um painel de leitura, estilo Power BI, que junta o que os outros módulos já registram na obra escolhida. Não cadastra nada. Não é a tela de abertura (a abertura continua sendo Frentes em risco: "nada de painel de gráficos na abertura"). Gráficos feitos à mão (CSS e SVG), sem biblioteca. Construído no mock em 4 etapas (Executivo → Ritmo & Produção → Contratos & Materiais → Qualidade + filtros + impressão).
+- **Quem:** só o engenheiro, porque o painel mostra valores em R$. No celular fica dentro de "Mais".
+- **Painel sem dado:** cada painel que não tiver o que mostrar nesta obra vira um cartão "Painel sem dados" dizendo de onde o dado vem (ex.: "Lance o primeiro diário para liberar este painel"). Nunca mostra NaN: sem dado é 0% ou "—".
+- **Filtros (valem para todos os painéis):** Empreiteiro (os da obra) e Período (Tudo · Este mês · Últimas 4 semanas). Escolhido um empreiteiro, cada painel mostra só o dele (as atividades ligadas às frentes dele, os contratos e medições dele, os pedidos das frentes dele, os registros e NCs da empresa dele). O % conforme da FVS, os desperdícios do Gemba e os insumos críticos do estoque não têm empreiteiro: ficam da obra inteira, com um aviso no painel.
+  - **Período** recorta o que tem data: as semanas da Curva S e do PPC (entra a semana que termina dentro do período; com período escolhido a Curva S vai só até a semana de hoje), as causas do Pareto (o "Não realizado" do Kanban vale pelo domingo da semana; subtarefa não tem data e só entra em "Tudo"), os diários, o custo medido (pela data em que a medição foi fechada), o lead time médio (pela chegada), os registros de Vistoria, as NCs, as vistorias de FVS e as observações de Gemba. "Este mês" = do dia 1 até hoje; "Últimas 4 semanas" = a semana de hoje e as 3 anteriores.
+  - O que é **posição de hoje** não muda com o período, e o painel avisa: evolução, prazo, contratos e saldos, pedidos por etapa, atrasados, estoque e a tendência do lead time (sempre as últimas 4 semanas).
+  - Os filtros voltam a "Todos · Tudo" ao trocar de obra.
+- **Painel Executivo:** 3 indicadores — Evolução (% real × % previsto, com seta verde ou vermelha), Prazo (dias até a data de entrega da obra) e Custo medido (R$ das medições **Fechadas**). Curva S por semana: linha cinza = % previsto acumulado (das datas das atividades do Planejamento), linha turquesa com área = % real (semanas passadas contam as atividades concluídas até o domingo; o último ponto é o % real de hoje). PPC geral em rosca: concluídas ÷ planejadas somando as semanas já fechadas. O % é a média das atividades (sem as arquivadas e sem os grupos) pesada pela duração em dias úteis.
+- **Painel Ritmo & Produção:** PPC por semana (barra verde = concluídas, vermelha = não concluídas); Pareto das causas (os "Não realizado" do Kanban e das subtarefas e os "Não andou" do diário, do maior para o menor, com os motivos do diário); Clima & efetivo (colunas = pessoas no canteiro por dia de diário, ícone do clima em cima, dia de chuva com fundo azulado).
+- **Painel Contratos & Medições:** fluxo pela situação da frente (Não iniciada · Em andamento · Concluída), com quantidade e R$ contratado em cada uma; matriz por empreiteiro (contratado · % medido com barra na célula · saldo a medir = contratado − medido nas Fechadas); saldo a medir por contrato (uma barra por frente).
+- **Painel Materiais:** contagem nas 5 colunas (Solicitar · Em cotação · A caminho · No almoxarifado · Entregue); atrasados (previsão vencida e ainda A caminho: material, frente, dias de atraso) e, ao lado, quantos pedidos Críticos ainda não foram entregues; lead time médio (Solicitar → No almoxarifado) e a tendência das últimas 4 semanas; do Estoque (só se a obra tiver insumo), os insumos críticos e entradas × saídas das últimas 6 semanas, contando lançamentos (cada insumo tem a sua unidade, então quantidades não se somam).
+- **Painel Qualidade & Entrega:** % conforme por modelo de FVS (pior primeiro; abaixo de 80%, a meta usual do PPC, sai em vermelho); pendências por empresa em rosca (registros de Vistoria não resolvidos + NCs não fechadas); mapa por local (blocos do tamanho do nº de registros de Vistoria não resolvidos); ranking dos desperdícios do Gemba.
+- **Imprimir relatório executivo:** impressão do navegador, como o relatório da Qualidade: cabeçalho centralizado (logo, "RELATÓRIO EXECUTIVO DA OBRA", nome e código da obra, data, filtros ativos), os painéis um embaixo do outro sem quebrar no meio, cores mantidas, sem menu e filtros, rodapé "Gerado automaticamente em [data e hora]".
+- **Carregamento:** como a Qualidade, a tela só é baixada quando alguém a abre.
+- **Vazio (obra sem nada registrado):** "Esta obra ainda não tem registros para o painel."
+
 ## Unidade principal
 
 **Obra** — vai existir mais de uma? **sim** — o Davidson toca várias ao mesmo tempo (a de alto padrão descrita aqui é uma delas). Seletor de obra no topo de todas as telas; os dados de uma obra **nunca** aparecem misturados com os de outra, nem nas listas, nem na medição, nem nas fotos. Alguém trabalha em mais de uma ao mesmo tempo? **[AINDA NÃO RESPONDIDO — proposta: sim, o engenheiro e a arquiteta]**. Cada pessoa só enxerga as obras às quais foi vinculada.
@@ -190,6 +207,7 @@ Cada um dos 30 serviços contratados vira uma **frente**, com responsável (empr
 | Planejamento: montar EAP, restrições, calendário | sim | não | não | não |
 | Planejamento: ver e mexer no Curto prazo (Kanban, subtarefas, causa) | sim | sim | só vê | não |
 | Apagar qualquer coisa | sim | não | não | não |
+| Relatórios (BI da obra) | sim | não | não | não |
 | Gerenciar usuários | sim | não | não | não |
 | **Quem não fez login** | não vê nada | | | |
 
@@ -263,6 +281,7 @@ Login / Criar conta / Aguardando liberação
     ├── Fotos
     ├── Materiais (pedidos)
     ├── Planejamento: EAP · Longo prazo · Médio prazo · Curto prazo
+    ├── Relatórios (BI da obra)
     └── Cadastros: Obras · Frentes e cronograma · Empreiteiros · Ambientes · Equipe
 └── Mestre (seletor de obra no topo)
     ├── Diário do dia  (início)

@@ -9,6 +9,7 @@ import Materiais from '../screens/materiais.jsx'
 import Planejamento from '../screens/planejamento.jsx'
 import Medicao from '../screens/medicao.jsx'
 import Qualidade from '../screens/qualidadeSobDemanda.jsx'
+import Relatorios from '../screens/relatoriosSobDemanda.jsx'
 import Obras from '../screens/obras.jsx'
 import { Cronograma, Empreiteiros, Empresa, Equipe, Mais } from '../screens/cadastros.jsx'
 
@@ -36,6 +37,7 @@ export default function AppEngenheiro() {
       case 'planejamento': corpo = <Planejamento />; break
       case 'medicao': corpo = <Medicao goto={goto} />; break
       case 'qualidade': corpo = <Qualidade />; break
+      case 'relatorios': corpo = <Relatorios />; break
       case 'mais': corpo = <Mais goto={goto} />; break
       case 'obras': corpo = <Obras />; break
       case 'cronograma': corpo = <Cronograma goto={goto} />; break

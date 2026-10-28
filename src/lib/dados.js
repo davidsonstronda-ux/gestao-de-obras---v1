@@ -1420,3 +1420,61 @@ export async function painelCliente() {
     .sort((a, b) => (a.tirada_em < b.tirada_em ? 1 : -1))
   return ok({ nome: obra.nome, data_entrega: obra.data_entrega, ambientes, fotos })
 }
+
+// ── relatórios (BI da obra, só engenheiro) ──────────────────────────────────
+// Entrega o que a obra tem em cada módulo, já sem nada das outras obras. Quem
+// recorta (empreiteiro, período) e monta as séries é lib/bi.js, na própria
+// tela: trocar um filtro não volta ao banco.
+export async function dadosDoBi() {
+  await espera()
+  const { obraId, erro } = exigirObra()
+  if (erro) return falha(erro)
+  if (!pode(role(), 'verRelatorios')) return falha('Só o engenheiro vê os relatórios.')
+  const obra = db.obras.find((o) => o.id === obraId)
+  const frentes = daObra('frentes', obraId)
+  const empreiteiroDa = (frenteId) => frentes.find((f) => f.id === frenteId)?.empreiteiro_id || null
+  const cal = calendarioDe(obraId)
+  const fechadas = daObra('medicoes', obraId).filter((m) => m.situacao === 'Fechada')
+  const atividades = daObra('atividades', obraId)
+  const empreiteiroDaAtividade = (id) => empreiteiroDa(atividades.find((a) => a.id === id)?.frente_id)
+  const diarios = daObra('diarios', obraId)
+  const nomeMaterial = (id) => db.materiais.find((m) => m.id === id)?.nome || '—'
+  // As causas do Pareto, de três lugares, com a data quando houver (subtarefa não tem).
+  // O "Não realizado" do Kanban vale pelo domingo da semana, como o PPC dela.
+  const causas = [
+    ...daObra('nao_realizados', obraId).map((n) => ({ origem: 'Kanban', causa: n.causa, empreiteiro_id: empreiteiroDaAtividade(n.atividade_id), data: semanaDe(n.semana).fim })),
+    ...daObra('subtarefas', obraId).filter((s) => s.situacao === 'Não realizado')
+      .map((s) => ({ origem: 'Subtarefa', causa: s.causa, empreiteiro_id: empreiteiroDaAtividade(s.atividade_id), data: null })),
+    ...daObra('apontamentos', obraId).filter((a) => a.situacao === 'Não andou').map((a) => ({
+      origem: 'Diário', causa: a.motivo, empreiteiro_id: empreiteiroDa(a.frente_id), data: diarios.find((d) => d.id === a.diario_id)?.data || null,
+    })),
+  ]
+  return ok({
+    obra: { data_entrega: obra.data_entrega },
+    calendario: cal,
+    empreiteiros: daObra('empreiteiros', obraId).map((e) => ({ id: e.id, nome: e.nome })).sort((a, b) => a.nome.localeCompare(b.nome)),
+    atividades: montarEap(atividades, cal, hoje()).map((i) => ({ ...i, empreiteiro_id: empreiteiroDa(i.frente_id) })),
+    medido: daObra('medicao_itens', obraId).flatMap((i) => {
+      const m = fechadas.find((x) => x.id === i.medicao_id)
+      return m ? [{ frente_id: i.frente_id, empreiteiro_id: m.empreiteiro_id, valor: i.valor, fechada_em: m.fechada_em.slice(0, 10) }] : []
+    }),
+    diarios: diarios.map((d) => ({ data: d.data, clima: d.clima, equipes: (d.equipes || []).map((e) => ({ ...e })) })),
+    causas,
+    // O valor contratado vem de `contratos` (só o engenheiro chega até aqui).
+    frentes: frentes.map((f) => ({
+      id: f.id, servico: f.servico, situacao: f.situacao, empreiteiro_id: f.empreiteiro_id,
+      valor_contratado: db.contratos.find((c) => c.frente_id === f.id)?.valor_contratado ?? 0,
+    })),
+    pedidos: daObra('pedidos', obraId).map((p) => ({
+      id: p.id, status: p.status, prioridade: p.prioridade, previsao_entrega: p.previsao_entrega,
+      material: nomeMaterial(p.material_id), frente: frentes.find((f) => f.id === p.frente_id)?.servico || '—', empreiteiro_id: empreiteiroDa(p.frente_id),
+      historico: db.pedido_historico.filter((h) => h.pedido_id === p.id).map((h) => ({ status: h.status, data: h.data })),
+    })),
+    insumos: daObra('insumos', obraId).map((i) => ({ ...i, nome: nomeMaterial(i.material_id) })),
+    movimentos: daObra('movimentos', obraId).map((m) => ({ tipo: m.tipo, data: m.data, empreiteiro_id: empreiteiroDa(m.frente_id) })),
+    registros: daObra('vistoria_registros', obraId).map((r) => ({ local: r.local, empreiteiro_id: r.empreiteiro_id, status: r.status, data_vistoria: r.data_vistoria })),
+    ncs: daObra('fvs_ncs', obraId).map((n) => ({ empreiteiro_id: n.empreiteiro_id, status: n.status, aberta_em: n.aberta_em })),
+    fvs: daObra('fvs_vistorias', obraId).map((v) => ({ modelo_nome: v.modelo_nome, grupos: structuredClone(v.grupos), respostas: { ...v.respostas }, criada_em: v.criada_em })),
+    gemba: daObra('gemba_observacoes', obraId).map((g) => ({ desperdicios: [...g.desperdicios], criada_em: g.criada_em })),
+  })
+}
